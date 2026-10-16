@@ -1,6 +1,7 @@
+import {MAX_BOOK_CHARACTERS} from './limits.js';
 export const MAX_DOCUMENT_BYTES=10*1024*1024;
 export const MAX_ARTICLE_CHARACTERS=60000;
-export const MAX_EXTRACTED_CHARACTERS=200000;
+export const MAX_EXTRACTED_CHARACTERS=MAX_BOOK_CHARACTERS;
 export const DOCUMENT_TYPES=['docx','pdf','md','markdown','txt'];
 
 export function documentType(file){
@@ -18,7 +19,7 @@ export function decodeDocumentText(bytes){
 }
 export function normalizeImportedText(text){
   const result=String(text||'').replace(/^\uFEFF/,'').replaceAll('\r\n','\n').replaceAll('\r','\n').replaceAll('\0','').trim();
-  if(result.length>MAX_EXTRACTED_CHARACTERS)throw new Error('提取的正文超过 20 万字符，请先把文档拆分成几篇文章。');
+  if(result.length>MAX_EXTRACTED_CHARACTERS)throw new Error('提取的正文超过 200 万字符，请拆分为多部作品。');
   if(!result)throw new Error('没有找到可导入的文字，请检查文档内容。');
   return result;
 }

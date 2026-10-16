@@ -3,22 +3,26 @@
 function heading(line){
  const match=line.trim().match(/^(#{1,6})\s+(.+?)(?:\s+#+)?$/);
  let text=match?match[2]:line.trim();
- text=text.replace(/^(\*\*|__)([\s\S]+)\1$/,'$2').trim();
+ const decorated=/^(\*{1,2}|_{1,2})([\s\S]+)\1$/.test(text);
+ text=text.replace(/^(\*{1,2}|_{1,2})([\s\S]+)\1$/,'$2').trim();
+ // Some TXT exporters keep brackets only around the number, e.g. 【第12集】雨夜.
+ text=text.replace(/^【(第[^】]+)】\s*(.+)$/,'$1：$2');
  const pairs=[['【','】'],['[',']'],['（','）'],['(',')'],['「','」']];
  for(let i=0;i<3;i++){const pair=pairs.find(([a,b])=>text.startsWith(a)&&text.endsWith(b));if(!pair)break;text=text.slice(pair[0].length,-pair[1].length).trim();}
- return {text,level:match?match[1].length:0};
+ return {text,level:match?match[1].length:0,decorated};
 }
 function chapterKind(item){
  const {text,level}=item;if(!text||text.length>100)return '';
- const cn=text.normalize('NFKC').match(/^第\s*[零〇一二三四五六七八九十百千万两\d]+\s*([章节回卷部])([\s\S]*)$/);
- if(cn){if(/^(?:的|完(?:\s|[\/／（(]|$)|结束|终了)/.test(cn[2].trim()))return '';
+ const cn=text.normalize('NFKC').match(/^第\s*[零〇一二三四五六七八九十百千万两\d]+\s*([章节回集幕话篇卷部])([\s\S]*)$/);
+ if(cn){if(/^(?:的|完(?:结|本|\s|[\/／（(]|$)|结束|终了|[-–—~～至到]\s*第?\s*[\d一二三四五六七八九十])/.test(cn[2].trim()))return '';
   if(!level&&/[。；;]$/.test(text))return '';
-  return ['章','回'].includes(cn[1])?'chapter':cn[1]==='节'?'section':'volume';}
- if(/^chapter\s+(?:\d+|[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten)\b/i.test(text)&&!/(?:\bend|complete)\s*$/i.test(text))return 'chapter';
+  return ['卷','部'].includes(cn[1])?'volume':cn[1]==='节'?'section':'chapter';}
+ if(/^(?:chapter|episode|ep\.?)\s*(?:\d+|[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten)\b/i.test(text)&&!/(?:\bend|complete)\s*$/i.test(text))return 'chapter';
  if(/^(序章|楔子|序言|前言|尾声|终章|后记|番外|prologue|epilogue)(?:\s|[：:、]|$)/i.test(text))return 'special';
  return '';
 }
-const meaningful=text=>text.split('\n').some(line=>line.trim()&&!/^\s*(?:[-*_]\s*){3,}\s*$/.test(line));
+const separator=line=>/^\s*(?:[-*_=·─━]\s*){3,}\s*$/.test(line);
+const meaningful=text=>text.split('\n').some(line=>line.trim()&&!separator(line));
 export function analyseChapters(input,{fallbackTitle='序言'}={}){
  const lines=String(input).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').split('\n');
  const items=lines.map((line,index)=>{const h=heading(line);return {...h,index,kind:chapterKind(h)};});
@@ -30,7 +34,7 @@ export function analyseChapters(input,{fallbackTitle='序言'}={}){
  let boundaries=[],method='整篇文档';
  if(primary.length){
   const levels=primary.filter(h=>h.level).map(h=>h.level),level=levels.length?Math.min(...levels):6;
-  boundaries=items.filter(h=>primary.includes(h)||(h.kind==='special'&&(!h.level||h.level<=level)));
+  const primarySet=new Set(primary);boundaries=items.filter(h=>primarySet.has(h)||(h.kind==='special'&&(!h.level||h.level<=level)));
   method=explicit.length?'明确章节标题':'编号分节标题';
  }else{
   const specials=items.filter(h=>h.kind==='special');
@@ -48,9 +52,17 @@ export function analyseChapters(input,{fallbackTitle='序言'}={}){
  const first=boundaries[0]?.index??lines.length;
  // Only remove title/subtitle headings before the first selected chapter.
  // Preserve all actual introductory prose as a preface chapter.
- const prefix=lines.slice(0,first);const titleHeading=items.find(h=>h.index<first&&h.level===1&&!h.kind);
+ const prefix=lines.slice(0,first);const prefixItems=items.filter(h=>h.index<first&&h.text&&!separator(h.text));
+ const titleHeading=prefixItems.find(h=>h.level===1&&!h.kind);
  const metadataIndices=new Set();
  if(titleHeading){title=titleHeading.text;metadataIndices.add(titleHeading.index);for(const h of items.filter(h=>h.index>titleHeading.index&&h.index<first&&h.level>1&&!h.kind)){subtitle+=(subtitle?'\n':'')+h.text;metadataIndices.add(h.index);}}
+ const metadataLine=line=>{const clean=line.replace(/^\s*>\s?/,'').replace(/\*\*|__/g,'').trim();return /^(?:【[^】]{1,80}】|(?:书名|作者|原作背景|卷名|本篇体量|篇幅体量|内容体量|核心主旨|四大卷目|献礼巨著|简介|内容简介|文案)\s*[：:])/.test(clean);};
+ if(boundaries.length){
+  const firstText=prefixItems[0];
+  if(!title&&firstText&&!firstText.kind&&firstText.text.length<=120&&!/[。！？!?]$/.test(firstText.text)&&
+    (firstText.decorated||/^《.+》/.test(firstText.text)||prefixItems.slice(1).some(h=>/^——/.test(h.text)||metadataLine(h.text)))){title=firstText.text;metadataIndices.add(firstText.index);}
+  if(title){for(const h of prefixItems){if(/^——/.test(h.text)){if(!metadataIndices.has(h.index))subtitle+=(subtitle?'\n':'')+h.text;metadataIndices.add(h.index);}else if(metadataLine(lines[h.index]))metadataIndices.add(h.index);}}
+ }
  const prose=prefix.filter((_,index)=>!metadataIndices.has(index));
  if(metadataIndices.size)frontMatter.push(...prefix.filter((_,index)=>metadataIndices.has(index)));
  if(meaningful(prose.join('\n'))&&boundaries.length)chapters.push({title:'序言',body:prose.join('\n').trim(),sourceStartLine:1,sourceEndLine:first});

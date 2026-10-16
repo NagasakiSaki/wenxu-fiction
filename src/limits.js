@@ -1,0 +1,1 @@
+export const MAX_BOOK_CHARACTERS=2_000_000;
