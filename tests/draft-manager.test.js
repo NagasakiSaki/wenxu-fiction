@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {draftBackup,parseDraftBackup,clearedDraftWithBackup} from '../src/draft-manager.js';
+const value={id:'sample-book',draftKey:'local-key',title:'测试作品',author:'',category:'奇幻',intro:'',status:'连载中',chapters:[{title:'第一章',body:'原始正文'}]};
+test('clearing removes all chapters and creates an independent recoverable snapshot',()=>{const {backup,cleared}=clearedDraftWithBackup(value);assert.equal(cleared.chapters.length,0);assert.equal(cleared.draftKey,value.draftKey);assert.notEqual(backup.draftKey,value.draftKey);assert.equal(backup.chapters[0].body,'原始正文');backup.chapters[0].body='改动';assert.equal(value.chapters[0].body,'原始正文');});
+test('unfinished and empty drafts export/restore separately from publish validation',()=>{const backup=draftBackup(value);assert.equal(backup.draft.draftKey,undefined);const restored=parseDraftBackup(backup);assert.equal(restored.chapters[0].body,'原始正文');assert.notEqual(restored.draftKey,value.draftKey);assert.equal(parseDraftBackup(draftBackup({...value,chapters:[]})).chapters.length,0);assert.throws(()=>parseDraftBackup({format:'other'}));});
