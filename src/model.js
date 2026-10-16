@@ -1,7 +1,7 @@
 export const OWNER='NagasakiSaki', REPO='wenxu-fiction';
-export function splitChapters(text){
+export function splitChapters(text,{fallbackTitle='序言'}={}){
  const lines=String(text).replace(/\r\n?/g,'\n').split('\n'); const chapters=[];let title='',body=[];
- const flush=()=>{if(body.join('\n').trim())chapters.push({title:title||'序言',body:body.join('\n').trim()});};
+ const flush=()=>{if(body.join('\n').trim())chapters.push({title:title||fallbackTitle,body:body.join('\n').trim()});};
  for(const line of lines){const clean=line.trim().replace(/^#{1,6}\s+/, '');const chinese=/^第\s*[零〇一二三四五六七八九十百千万两\d０-９]+\s*[章节回卷部](?!的)/.test(clean)&&!/[。！？!?；;]$/.test(clean);const heading=chinese||/^chapter\s+[\divxlc]+\b/i.test(clean)||/^#{1,3}\s+\S/.test(line)||/^(序章|楔子|序言|尾声|后记|番外)(?:\s|[：:、]|$)/.test(clean);if(heading&&clean.length<100){flush();title=clean;body=[];}else body.push(line);}
  flush();return chapters.length?chapters:[{title:'第一章',body:String(text).trim()}];
 }
