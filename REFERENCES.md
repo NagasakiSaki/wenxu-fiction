@@ -4,10 +4,12 @@
 
 ## 设计参考
 
+- [Readest](https://github.com/readest/readest) 及其[阅读说明](https://www.readest.com/docs/reading)：参考书签、备注、全书搜索和阅读位置恢复的功能设计；本仓库独立实现浏览器本地存储与定位逻辑，未复制其源码。
+
 - [raikyou/novel-parser](https://github.com/raikyou/novel-parser)：参考中英文章节识别、TXT 编码兼容、书名前置资料和序言处理的设计。
 - [rockbenben/novel-processor](https://github.com/rockbenben/novel-processor)：参考章节规范化与排序的功能设计。
 
-本站的章节规则、整篇结构分析、文件夹排序、批量预览、限额处理和草稿存储由本仓库独立实现，没有复制上述两个项目的源代码，也没有把其后端作为运行依赖。对参考功能的说明不代表使用了其全部功能。
+本站的章节规则、整篇结构分析、文件夹排序、批量预览、限额处理和草稿存储由本仓库独立实现，没有复制上述项目的源代码，也没有把其后端作为运行依赖。对参考功能的说明不代表使用了其全部功能。
 
 ## 直接使用的开源依赖
 
