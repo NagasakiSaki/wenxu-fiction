@@ -4,3 +4,8 @@ dist/
 !.env.example
 public/pdfjs/
 .artifacts/
+
+dist-native/
+.private/
+*.jks
+*.keystore

@@ -20,6 +20,13 @@ export function splitChapter(chapters,index,offset,{title,renumber=true}={}){
  let next=[...chapters.slice(0,index),cleanSource(current,{body:before}),{title:newTitle,body:after},...chapters.slice(index+1)];
  if(renumber)next=shiftFollowing(next,index+2,basis,1);return checked(next);
 }
+export function splitChapterAtPoints(chapters,index,offsets,{renumber=true}={}){
+ const current=chapters[index];if(!current)throw Error('请先选择章节');if(!Array.isArray(offsets)||!offsets.length)throw Error('请至少保留一个断点');
+ const points=[...new Set(offsets)].sort((a,b)=>a-b);if(chapters.length+points.length>1000)throw Error('拆分后超过1000章，请减少断点或增大目标字数');
+ for(const point of points){if(!Number.isInteger(point)||point<=0||point>=current.body.length)throw Error('断点必须位于正文内部');if(/[\uD800-\uDBFF]/.test(current.body[point-1])&&/[\uDC00-\uDFFF]/.test(current.body[point]))throw Error('断点不能位于一个字符内部');}
+ const boundaries=[0,...points,current.body.length],basis=numberedTitle(current.title)||numberedTitle(`第 ${index+1} 章`),parts=boundaries.slice(0,-1).map((start,i)=>{const body=current.body.slice(start,boundaries[i+1]);if(!body.trim())throw Error('两个断点之间没有正文，请取消多余断点');return i?{title:basis.format(basis.number+i),body}:cleanSource(current,{body});});
+ let result=[...chapters.slice(0,index),...parts,...chapters.slice(index+1)];if(renumber)result=shiftFollowing(result,index+parts.length,basis,points.length);return checked(result);
+}
 export function mergeNextChapter(chapters,index,{renumber=true}={}){
  const current=chapters[index],following=chapters[index+1];if(!current||!following)throw Error('当前章后没有可合并的章节');
  const basis=numberedTitle(following.title)||numberedTitle(`第 ${index+2} 章`),next=[...chapters.slice(0,index),cleanSource(current,{body:current.body+'\n\n'+following.body}),...chapters.slice(index+2)];

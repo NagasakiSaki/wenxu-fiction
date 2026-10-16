@@ -1,11 +1,12 @@
+import {isNative} from './platform-runtime.js';
 import {showImportReview} from './import-review.js';
 import {runChapterAnalysis} from './chapter-engine.js';
 import {prepareImport,mergeChapters} from './batch-import.js';
 let busy=false;
 export function bindDocumentImports({getDraft,apply,modal,esc,toast}){
  const status=message=>{const el=document.querySelector('#import-status');if(el)el.textContent=message;};
- const run=async event=>{
-  const input=event.target,files=[...input.files];input.value='';if(!files.length||busy)return;
+ const runFiles=async files=>{
+  if(location.hash!=='#/studio')return;if(!files.length||busy)return;
   const original=getDraft(),mode=document.querySelector('#import-mode').value;
   busy=true;const controls=[...document.querySelectorAll('main input,main button,main select,main textarea')].map(el=>({el,disabled:el.disabled}));controls.forEach(({el})=>el.disabled=true);
   try{
@@ -15,6 +16,8 @@ export function bindDocumentImports({getDraft,apply,modal,esc,toast}){
    showImportReview({result,mode,modal,esc,toast,onConfirm:async reviewed=>{if(location.hash!=='#/studio'||getDraft()!==original)throw Error('草稿已改变，请重新导入');const chapters=mergeChapters(original.chapters,reviewed.chapters,mode);const stored=await apply({...original,title:original.title||reviewed.title,chapters,importNotes:[...(mode==='replace'?[]:original.importNotes||[]),...reviewed.sources.filter(s=>s.frontMatter).map(s=>({file:s.path,text:s.frontMatter,subtitle:s.subtitle}))]},mode==='replace'?0:original.chapters.filter(c=>c.body.trim()).length);toast(stored===false?`已导入 ${reviewed.chapters.length} 章，但保存失败，请立即导出备份。`:`已导入 ${reviewed.chapters.length} 章，并保存本机草稿。尚未公开发布。`);}});
   }catch(err){status(err.message);toast('导入未完成，原草稿已保留');}finally{busy=false;controls.forEach(({el,disabled})=>el.disabled=disabled);}
  };
+ const run=event=>{const files=[...event.target.files];event.target.value='';return runFiles(files);};
  document.querySelector('#document').onchange=run;
- document.querySelector('#folder').onchange=run;
+ const folder=document.querySelector('#folder');if(folder)folder.onchange=run;
+ const nativeFolder=document.querySelector('#native-folder');if(nativeFolder)nativeFolder.onclick=async()=>{nativeFolder.disabled=true;try{const {pickNativeFolder}=await import('./native-documents.js');const files=await pickNativeFolder();if(files.length)await runFiles(files);}catch(error){toast(error.message);}finally{if(nativeFolder.isConnected)nativeFolder.disabled=false;}};
 }

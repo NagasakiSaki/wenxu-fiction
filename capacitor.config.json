@@ -1,0 +1,19 @@
+{
+  "appId": "io.github.nagasakisaki.wenxu",
+  "appName": "文序",
+  "webDir": "dist-native",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false,
+    "minWebViewVersion": 119
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  },
+  "initialFocus": false
+}
