@@ -2,23 +2,26 @@
 
 **NagasakiSaki 的个人项目**：从本地手稿导入、自动识别和校正章节，到公开发表与手机阅读。
 
-[在线体验](https://nagasakisaki.github.io/wenxu-fiction/) · [正式版本](https://github.com/NagasakiSaki/wenxu-fiction/releases) · [结构引擎技术说明](docs/structure-engine.md) · [更新记录](CHANGELOG.md) · [引用与依赖](REFERENCES.md)
+[在线体验](https://nagasakisaki.github.io/wenxu-fiction/) · [安卓下载与离线安装](https://nagasakisaki.github.io/wenxu-fiction/#/app) · [正式版本](https://github.com/NagasakiSaki/wenxu-fiction/releases) · [结构引擎技术说明](docs/structure-engine.md) · [更新记录](CHANGELOG.md) · [引用与依赖](REFERENCES.md)
 
 ## 项目亮点
 
 | 模块 | 已实现能力 |
 | --- | --- |
 | 结构引擎 2.0 | 整篇语义优先级、连续编号与正文联合推断、候选证据、跳号与重复提示、原文行号校正 |
-| 作者工作台 | 多格式与文件夹导入、光标拆章、编号顺延、相邻合并与撤销、多作品草稿、自动保存、回收站和备份 |
+| 作者工作台 | 多格式与文件夹导入、光标及多断点拆章、按篇幅建议断点、编号顺延、相邻合并与撤销、多作品草稿、自动保存、回收站和备份 |
 | 阅读体验 | 手机滑屏分页、首尾导航、字号字体行距、日夜模式、章节筛选 |
 | 阅读管理 | 书架、段落书签与备注、删除恢复、全书搜索、历史续读和备份迁移 |
-| 发布与验证 | GitHub Pages自动部署、作品校验、56项测试、可复现结构评测 |
+| 本地应用 | 安卓离线APK、Windows可安装PWA、共用草稿JSON双向迁移、安卓私有文件保存与系统文件选择器 |
+| 发布与验证 | GitHub Pages自动部署、所有者签名安卓构建、作品校验、65项测试、可复现结构评测 |
 
 技术特点是将“跨格式结构分析、可解释证据、作者修正和公开验证”连成完整流程。实现不使用大模型服务，不将规则等级包装成正确率，不声称自动分章的学术首创。12份合成结构样例中11份分界完全匹配，边界F1约0.936；已知失败案例与评测范围一并公开。详见[技术说明与基准结果](docs/structure-engine.md)。
 
 ![文序分章校正界面](docs/images/structure-review.png)
 
 ## 当前产品形态
+
+v2.0.0 提供安卓本地创作应用与可安装的 Windows 桌面 Web 应用（PWA，非EXE），不依赖账号。APK内置资源，PWA首次联网缓存完成后可离线；两端通过 `wenxu-draft-v1` 文件互通，导入另存独立草稿。安装、备份、限制及开发说明见[本地应用与文件互通](docs/local-apps.md)。
 
 独立公开阅读平台，无读者账号。作品以 JSON 存储在 `content/books/`，由仓库维护者提交，通过 GitHub Actions 校验并部署 GitHub Pages。所有公开文件及提交历史均可被访问，请勿上传私人草稿。
 
