@@ -1,4 +1,4 @@
-import {splitChapters} from './model.js';
+import {analyseChapters} from './chapter-analysis.js';
 import {DOCUMENT_TYPES,MAX_DOCUMENT_BYTES,titleFromFilename} from './document-model.js';
 export const MAX_IMPORT_FILES=100,MAX_BATCH_BYTES=50*1024*1024,MAX_BOOK_CHARACTERS=200000;
 const collator=new Intl.Collator('zh-CN',{numeric:true,sensitivity:'base'});
@@ -33,19 +33,22 @@ export function planImport(files){
  return {files:[...supported].sort(compareDocumentPaths),skipped};
 }
 export async function prepareImport(files,parse,onProgress=()=>{}){
- const plan=planImport(files),chapters=[],sources=[],failed=[],warnings=[];let total=0;
+ const plan=planImport(files),chapters=[],sources=[],failed=[],warnings=[];let total=0,detectedTitle='';
  for(let i=0;i<plan.files.length;i++){
   const file=plan.files[i],path=filePath(file);onProgress(`解析 ${i+1} / ${plan.files.length}：${path}`);
   let result;try{result=await parse(file,message=>onProgress(`${i+1} / ${plan.files.length} · ${file.name}：${message}`));}catch(err){failed.push({path,reason:err.message||'解析失败'});continue;}
-  const extracted=splitChapters(result.markdown,{fallbackTitle:titleFromFilename(file.name)});
+  const analysis=analyseChapters(result.markdown,{fallbackTitle:titleFromFilename(file.name)}),extracted=analysis.chapters;
+  if(!extracted.length){failed.push({path,reason:'只找到标题或分隔线，没有可阅读的正文'});continue;}
+  if(!detectedTitle)detectedTitle=analysis.title;
+  if(analysis.title||analysis.subtitle)warnings.push(`${file.name}：已提取书名「${analysis.title}」${analysis.subtitle?'，副标题「'+analysis.subtitle+'」':''}，不作为章节。大纲、视角说明及章末注记保留在所属章内。`);
   const nextTotal=total+extracted.reduce((n,c)=>n+c.body.length,0);
   if(nextTotal>MAX_BOOK_CHARACTERS)throw Error('这批文档正文合计超过 20 万字符。当前草稿没有更改，请减少文档后重试。');
   if(chapters.length+extracted.length>1000)throw Error('识别结果超过 1000 章，请减少文档后重试。');
-  total=nextTotal;sources.push({path,start:chapters.length,count:extracted.length});chapters.push(...extracted);
+  total=nextTotal;sources.push({path,start:chapters.length,count:extracted.length,method:analysis.method,frontMatter:analysis.frontMatter,subtitle:analysis.subtitle});chapters.push(...extracted);
   for(const message of result.warnings||[])warnings.push(`${file.name}：${message}`);
  }
  const root=plan.files[0].webkitRelativePath?.split('/')[0];
- return {chapters,sources,failed,skipped:plan.skipped,warnings,total,title:root||titleFromFilename(plan.files[0].name)};
+ return {chapters,sources,failed,skipped:plan.skipped,warnings,total,title:root||detectedTitle||titleFromFilename(plan.files[0].name)};
 }
 export function mergeChapters(existing,incoming,mode){
  const chapters=mode==='replace'?[...incoming]:[...existing.filter(c=>c.body.trim()),...incoming];
