@@ -1,3 +1,4 @@
+import {inferNumberedHeadings,structureEvidence} from './structure-evidence.js';
 // Analyse the whole document before selecting boundaries. Markdown heading level
 // alone is not sufficient: a novel can have a title, subtitle and chapter outlines.
 function heading(line){
@@ -23,19 +24,20 @@ function chapterKind(item){
 }
 const separator=line=>/^\s*(?:[-*_=·─━]\s*){3,}\s*$/.test(line);
 const meaningful=text=>text.split('\n').some(line=>line.trim()&&!separator(line));
-export function analyseChapters(input,{fallbackTitle='序言'}={}){
+export function analyseChapters(input,{fallbackTitle='序言',boundaryLines}={}){
  const lines=String(input).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').split('\n');
  const items=lines.map((line,index)=>{const h=heading(line);return {...h,index,kind:chapterKind(h)};});
  // Never interpret headings or apparent chapter names inside fenced code as boundaries.
- let fence=null;for(const item of items){const m=lines[item.index].trim().match(/^(`{3,}|~{3,})/);if(m){if(!fence)fence=m[1];else if(m[1][0]===fence[0]&&m[1].length>=fence.length)fence=null;item.kind='';item.level=0;}else if(fence){item.kind='';item.level=0;}}
+ let fence=null;for(const item of items){const m=lines[item.index].trim().match(/^(`{3,}|~{3,})/);if(m){if(!fence)fence=m[1];else if(m[1][0]===fence[0]&&m[1].length>=fence.length)fence=null;item.kind='';item.level=0;item.fenced=true;}else if(fence){item.kind='';item.level=0;item.fenced=true;}}
  const explicit=items.filter(h=>h.kind==='chapter');
  const secondary=items.filter(h=>h.kind==='section');
- const primary=explicit.length?explicit:secondary;
+ const inferred=explicit.length||secondary.length?[]:inferNumberedHeadings(items,lines);
+ const primary=explicit.length?explicit:secondary.length?secondary:inferred;
  let boundaries=[],method='整篇文档';
  if(primary.length){
   const levels=primary.filter(h=>h.level).map(h=>h.level),level=levels.length?Math.min(...levels):6;
-  const primarySet=new Set(primary);boundaries=items.filter(h=>primarySet.has(h)||(h.kind==='special'&&(!h.level||h.level<=level)));
-  method=explicit.length?'明确章节标题':'编号分节标题';
+  const primarySet=new Set(primary.map(h=>h.index));boundaries=items.filter(h=>primarySet.has(h.index)||(h.kind==='special'&&(!h.level||h.level<=level)));
+  method=explicit.length?'明确章节标题':secondary.length?'编号分节标题':'连续编号与正文结构推断';
  }else{
   const specials=items.filter(h=>h.kind==='special');
   if(specials.length){boundaries=specials;method='序章与尾声标题';}
@@ -48,6 +50,11 @@ export function analyseChapters(input,{fallbackTitle='序言'}={}){
    boundaries=candidates.filter(h=>h.level===level);method=boundaries.length?'Markdown 同级标题':'整篇文档';
   }
  }
+ if(boundaryLines!==undefined){
+  if(!Array.isArray(boundaryLines)||boundaryLines.length>1000||new Set(boundaryLines).size!==boundaryLines.length)throw Error('分界行必须唯一，且不超过1000个');
+  boundaries=boundaryLines.map(line=>{if(!Number.isInteger(line)||line<1||line>lines.length)throw Error('分界行超出文档范围');const item=items[line-1];if(!item.text||item.text.length>100||item.fenced||separator(item.text))throw Error('请选择100字以内的非空标题行，代码和分隔线不能作为标题');return item;}).sort((a,b)=>a.index-b.index);method='作者校正分界';
+ }
+ if(boundaries.length>1000)throw Error('识别分界超过1000个，请拆分文档后导入');
  const chapters=[],frontMatter=[];let title='',subtitle='';
  const first=boundaries[0]?.index??lines.length;
  // Only remove title/subtitle headings before the first selected chapter.
@@ -71,5 +78,5 @@ export function analyseChapters(input,{fallbackTitle='序言'}={}){
   if(meaningful(body))chapters.push({title:current.text,body,sourceStartLine:current.index+1,sourceEndLine:end});
  }}else if(meaningful(input))chapters.push({title:fallbackTitle,body:String(input).trim(),sourceStartLine:1,sourceEndLine:lines.length});
  // A heading-only document is not a readable chapter.
- return {chapters,title,subtitle,frontMatter:frontMatter.join('\n'),method};
+ return {chapters,title,subtitle,frontMatter:frontMatter.join('\n'),method,...structureEvidence({items,lines,boundaries,chapters,method,inferred,manual:boundaryLines!==undefined})};
 }

@@ -4,13 +4,8 @@ import {DOCUMENT_TYPES,MAX_DOCUMENT_BYTES,titleFromFilename} from './document-mo
 export {MAX_BOOK_CHARACTERS} from './limits.js';
 export const MAX_IMPORT_FILES=100,MAX_BATCH_BYTES=50*1024*1024;
 const collator=new Intl.Collator('zh-CN',{numeric:true,sensitivity:'base'});
-const digits={'零':0,'〇':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
-export function chineseNumber(value){
- if(!value)return null;const s=value.normalize('NFKC');if(/^\d+$/.test(s))return Number(s);
- if(!/^[零〇一二两三四五六七八九十百千万]+$/.test(s))return null;
- if(!/[十百千万]/.test(s))return Number([...s].map(c=>digits[c]).join(''));
- let total=0,section=0,n=0;for(const c of s){if(c in digits)n=digits[c];else if(c==='万'){total+=(section+n||1)*10000;section=0;n=0;}else{section+=(n||1)*({'十':10,'百':100,'千':1000}[c]);n=0;}}return total+section+n;
-}
+import {chineseNumber} from './chapter-numbers.js';
+export {chineseNumber} from './chapter-numbers.js';
 function romanNumber(s){let sum=0;const map={I:1,V:5,X:10,L:50,C:100,D:500,M:1000};s=s.toUpperCase();for(let i=0;i<s.length;i++){const v=map[s[i]];if(!v)return null;sum+=v<(map[s[i+1]]||0)?-v:v;}return sum;}
 function sortPart(part){
  let s=part.normalize('NFKC').replace(/\.[^.]+$/,'');
@@ -34,19 +29,19 @@ export function planImport(files){
  const oversize=supported.find(f=>f.size>MAX_DOCUMENT_BYTES);if(oversize)throw Error(`${oversize.name} 超过单文件 10 MB 上限。请缩小后重试。`);
  return {files:[...supported].sort(compareDocumentPaths),skipped};
 }
-export async function prepareImport(files,parse,onProgress=()=>{}){
+export async function prepareImport(files,parse,onProgress=()=>{},analyse=analyseChapters){
  const plan=planImport(files),chapters=[],sources=[],failed=[],warnings=[];let total=0,detectedTitle='';
  for(let i=0;i<plan.files.length;i++){
   const file=plan.files[i],path=filePath(file);onProgress(`解析 ${i+1} / ${plan.files.length}：${path}`);
   let result;try{result=await parse(file,message=>onProgress(`${i+1} / ${plan.files.length} · ${file.name}：${message}`));}catch(err){failed.push({path,reason:err.message||'解析失败'});continue;}
-  const analysis=analyseChapters(result.markdown,{fallbackTitle:titleFromFilename(file.name)}),extracted=analysis.chapters;
+  const analysis=await analyse(result.markdown,{fallbackTitle:titleFromFilename(file.name)}),extracted=analysis.chapters;
   if(!extracted.length){failed.push({path,reason:'只找到标题或分隔线，没有可阅读的正文'});continue;}
   if(!detectedTitle)detectedTitle=analysis.title;
   if(analysis.title||analysis.subtitle)warnings.push(`${file.name}：已提取书名「${analysis.title}」${analysis.subtitle?'，副标题「'+analysis.subtitle+'」':''}，不作为章节。大纲、视角说明及章末注记保留在所属章内。`);
   const nextTotal=total+extracted.reduce((n,c)=>n+c.body.length,0);
   if(nextTotal>MAX_BOOK_CHARACTERS)throw Error('这批文档正文合计超过 200 万字符。当前草稿没有更改，请减少文档后重试。');
   if(chapters.length+extracted.length>1000)throw Error('识别结果超过 1000 章，请减少文档后重试。');
-  total=nextTotal;sources.push({path,start:chapters.length,count:extracted.length,method:analysis.method,frontMatter:analysis.frontMatter,subtitle:analysis.subtitle});chapters.push(...extracted);
+  total=nextTotal;sources.push({path,start:chapters.length,count:extracted.length,method:analysis.method,frontMatter:analysis.frontMatter,subtitle:analysis.subtitle,markdown:result.markdown,fallbackTitle:titleFromFilename(file.name),analysis});chapters.push(...extracted);
   for(const message of result.warnings||[])warnings.push(`${file.name}：${message}`);
  }
  const root=plan.files[0].webkitRelativePath?.split('/')[0];
