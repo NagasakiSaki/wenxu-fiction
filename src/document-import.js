@@ -29,8 +29,8 @@ export async function importDocument(file,onProgress=()=>{}){
   }else if(type==='pdf'){
     const signature=new TextDecoder().decode(new Uint8Array(buffer,0,Math.min(1024,buffer.byteLength)));if(!signature.includes('%PDF-'))throw new Error('这不是有效的 PDF 文件，或文件已经损坏。');
     onProgress('正在加载 PDF 文字解析器……');
-    const pdfjs=await import('pdfjs-dist/build/pdf.mjs');
-    const worker=await import('pdfjs-dist/build/pdf.worker.min.mjs?url');pdfjs.GlobalWorkerOptions.workerSrc=worker.default;
+    const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const worker=await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');pdfjs.GlobalWorkerOptions.workerSrc=worker.default;
     const base=new URL(import.meta.env.BASE_URL,location.href).href;
     const loading=pdfjs.getDocument({data:new Uint8Array(buffer),isEvalSupported:false,useSystemFonts:true,cMapUrl:base+'pdfjs/cmaps/',cMapPacked:true,standardFontDataUrl:base+'pdfjs/standard_fonts/',wasmUrl:base+'pdfjs/wasm/'});
     let pdf;

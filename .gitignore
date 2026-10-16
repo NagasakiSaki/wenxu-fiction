@@ -9,3 +9,4 @@ dist-native/
 .private/
 *.jks
 *.keystore
+public/third-party/

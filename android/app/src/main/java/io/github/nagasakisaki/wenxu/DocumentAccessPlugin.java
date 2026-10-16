@@ -21,7 +21,7 @@ public class DocumentAccessPlugin extends Plugin {
     @PluginMethod
     public void saveText(PluginCall call) {
         String name = call.getString("filename"), text = call.getString("text");
-        if (name == null || text == null || text.length() > 10000000) { call.reject("文件内容无效或超过10MB字符限制"); return; }
+        if (name == null || text == null || text.length() > 32 * 1024 * 1024) { call.reject("文件内容无效或超过32MB字符限制"); return; }
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("application/json");

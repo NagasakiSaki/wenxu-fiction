@@ -2,6 +2,16 @@ name: Build Android Local App
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'android/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'package*.json'
+      - 'vite.config.js'
+      - 'capacitor.config.json'
+      - '.github/workflows/android.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -41,6 +51,8 @@ jobs:
           ./gradlew assembleRelease testDebugUnitTest --no-daemon
           cp app/build/outputs/apk/release/app-release.apk ../wenxu-android.apk
           cd ..
+          SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          "$SIGNER" verify --verbose --print-certs wenxu-android.apk > android-signature.txt
           sha256sum wenxu-android.apk > SHA256SUMS-android.txt
       - uses: actions/upload-artifact@v4
         with:
@@ -48,6 +60,7 @@ jobs:
           path: |
             wenxu-android.apk
             SHA256SUMS-android.txt
+            android-signature.txt
           if-no-files-found: error
   offline-device-test:
     runs-on: ubuntu-latest
