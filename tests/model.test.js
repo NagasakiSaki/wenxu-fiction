@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {splitChapters,validateBook} from '../src/model.js';
+test('splits Chinese, English and Markdown titles preserving preface',()=>{const c=splitChapters('开场\n第一章 风\n正文甲\nChapter 2 Rain\n正文乙\n## 终章\n正文丙');assert.equal(c.length,4);assert.equal(c[0].body,'开场');assert.equal(c[2].title,'Chapter 2 Rain');assert.equal(c[3].body,'正文丙');});
+test('ordinary narrative is not split',()=>{assert.equal(splitChapters('第一章的故事开始了。\n他想起了第二章。').length,1);});
+test('rejects empty chapters and invalid IDs',()=>{const b={id:'test-book',title:'书',author:'我',category:'奇幻',intro:'',status:'连载中',chapters:[{title:'第一章',body:'正文'}]};assert.equal(validateBook(b),b);assert.throws(()=>validateBook({...b,id:'../x'}));assert.throws(()=>validateBook({...b,chapters:[{title:'一',body:''}]}));});
