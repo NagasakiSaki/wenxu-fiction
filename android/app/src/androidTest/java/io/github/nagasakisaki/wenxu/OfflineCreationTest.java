@@ -60,7 +60,8 @@ public class OfflineCreationTest {
             File manifest=new File(context.getFilesDir(),"drafts/index.json");assertTrue(manifest.exists());
             JSONObject index=new JSONObject(new String(Files.readAllBytes(manifest.toPath()),StandardCharsets.UTF_8));
             String oldKey=index.getString("current");assertEquals(2,index.getJSONObject("entries").length());
-            scenario.recreate();until(scenario,"document.querySelectorAll('.editor-toc button').length===3");
+            scenario.recreate();until(scenario,"!!document.querySelector('#shelf-import')");
+            js(scenario,"location.hash='/studio';true");until(scenario,"document.querySelectorAll('.editor-toc button').length===3");
             assertEquals("\"甲段。\\n\\n\"",js(scenario,"document.querySelector('#chapter-body').value"));
             File exchange=new File(context.getCacheDir(),"portable-draft.json");
             Uri uri=FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",exchange);
@@ -90,7 +91,9 @@ public class OfflineCreationTest {
                 js(scenario,"document.querySelector('.chapter-grid a').click();true");
                 until(scenario,"location.hash.startsWith('#/read/local-') && document.body.innerText.includes('甲段。')");
                 assertEquals("true",js(scenario,"document.body.innerText.includes('甲段。')"));
-                scenario.recreate();until(scenario,"document.body.innerText.includes('甲段。')");
+                scenario.recreate();until(scenario,"!!document.querySelector('.book-card[href*=\"local-\"]')");
+                js(scenario,"document.querySelector('.book-card[href*=\"local-\"]').click();true");until(scenario,"!!document.querySelector('.chapter-grid a')");
+                js(scenario,"document.querySelector('.book-detail .primary').click();true");until(scenario,"document.body.innerText.includes('甲段。')");
                 js(scenario,"location.hash='/shelf';true");
                 until(scenario,"!!document.querySelector('.book-card[href*=\"local-\"]')");
                 js(scenario,"document.querySelector('.book-card[href*=\"local-\"]').click();true");
