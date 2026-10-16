@@ -10,7 +10,7 @@ import java.io.FileNotFoundException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
-// Test-APK-only SAF fixture. Not included in the shipped application.
+// Debug-build-only SAF fixture. Not included in the shipped release application.
 public class FixtureDocumentsProvider extends DocumentsProvider {
     private static final String[] COLUMNS={Document.COLUMN_DOCUMENT_ID,Document.COLUMN_DISPLAY_NAME,Document.COLUMN_MIME_TYPE,Document.COLUMN_FLAGS,Document.COLUMN_SIZE};
     private Object[] row(String id){switch(id){
