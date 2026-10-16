@@ -81,6 +81,9 @@ public class OfflineCreationTest {
                 JSONObject restored=new JSONObject(new String(Files.readAllBytes(manifest.toPath()),StandardCharsets.UTF_8));
                 assertNotEquals(oldKey,restored.getString("current"));assertTrue(restored.getJSONObject("entries").has(oldKey));
                 assertEquals(3,restored.getJSONObject("entries").getJSONObject(restored.getString("current")).getInt("chapters"));
+                js(scenario,"Capacitor.nativePromise('DocumentAccess','pickFolder',{}).then(r=>document.body.dataset.fixtureTree=JSON.stringify(r));true");
+                until(scenario,"!!document.body.dataset.fixtureTree");
+                assertEquals(js(scenario,"document.body.dataset.fixtureTree"),"true",js(scenario,"JSON.parse(document.body.dataset.fixtureTree).files.some(f=>f.name==='第一章.txt')"));
                 js(scenario,"document.querySelector('#native-folder').click();true");
                 until(scenario,"!!document.querySelector('[data-review-source=\"0\"]')");
                 assertEquals("true",js(scenario,"document.querySelector('#dialog h2').textContent.includes('2 章') && document.querySelectorAll('[data-review-source]').length===2 && document.querySelector('#dialog').textContent.includes('1 个跳过')"));
