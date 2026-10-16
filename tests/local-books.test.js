@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import 'fake-indexeddb/auto';
+import {localReadingCopy,portableBook} from '../src/local-books-core.js';
+import {loadLocalBooks,storeLocalBook} from '../src/local-books.js';
+const source=()=>({id:'test-novel',title:'本地测试',author:'',intro:'',category:'其他',status:'连载中',chapters:[{title:'第一章',body:'甲段。\n\n乙段。'}]});
+test('local reading copies keep exact prose, independent draft data and stable namespaced IDs',()=>{const draft=source(),book=localReadingCopy(draft);assert.match(book.id,/^local-/);assert.equal(book.author,'未署名');assert.notEqual(book.id,draft.id);draft.chapters[0].body='新正文';assert.equal(book.chapters[0].body,'甲段。\n\n乙段。');const update=localReadingCopy(draft,[book]);assert.equal(update.id,book.id);assert.equal(update.chapters[0].body,'新正文');assert.equal(portableBook(update).id,'test-novel');assert.equal(portableBook(update).local,undefined);});
+test('draft file and work file interchange preserve source identity across devices',()=>{const book=localReadingCopy({format:'wenxu-draft-v1',draft:source()});const onOtherDevice=localReadingCopy(portableBook(book));assert.notEqual(onOtherDevice.id,book.id);assert.equal(onOtherDevice.sourceId,book.sourceId);assert.deepEqual(onOtherDevice.chapters,book.chapters);});
+test('empty or invalid chapters fail before changing shelf',()=>{for(const patch of [{chapters:[]},{chapters:[{title:'空章',body:''}]},{id:'../bad'},{chapters:[{title:'章',body:'字'.repeat(2000001)}]}])assert.throws(()=>localReadingCopy({...source(),...patch}));});
+test('shelf persistence retains multiple books and replaces updates without duplicates',async()=>{const a=localReadingCopy(source());await storeLocalBook(a);const b=localReadingCopy({...source(),id:'second-book'});await storeLocalBook(b);const update=localReadingCopy({...source(),title:'更新后的书'},await loadLocalBooks());await storeLocalBook(update);const books=await loadLocalBooks();assert.equal(books.length,2);assert.equal(books.find(x=>x.id===a.id).title,'更新后的书');assert.equal(books.find(x=>x.id===b.id).title,'本地测试');});

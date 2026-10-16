@@ -1,0 +1,6 @@
+import {isNative} from './platform-runtime.js';
+let backend,opening,queue=Promise.resolve();
+async function native(){return backend??=import('./native-local-books.js').then(m=>m.nativeLocalBooks);}
+function db(){return opening??=new Promise((resolve,reject)=>{const r=indexedDB.open('wenxu-local-books',1);r.onupgradeneeded=()=>r.result.createObjectStore('books',{keyPath:'id'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+export async function loadLocalBooks(){if(isNative()){const store=await native();return Promise.all((await store.listDrafts()).map(entry=>store.getDraft(entry.key)));}await queue.catch(()=>{});const database=await db();return new Promise((resolve,reject)=>{const r=database.transaction('books').objectStore('books').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+export function storeLocalBook(book){const copy=structuredClone(book);if(isNative())return native().then(store=>store.storeDraft(copy));const task=queue.catch(()=>{}).then(async()=>{const database=await db();await new Promise((resolve,reject)=>{const tx=database.transaction('books','readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('本地书架保存中断'));tx.objectStore('books').put(copy);});});queue=task;return task;}

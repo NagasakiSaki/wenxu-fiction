@@ -51,6 +51,8 @@ public class OfflineCreationTest {
         Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
         assertEquals("io.github.nagasakisaki.wenxu",context.getPackageName());
         try (ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            until(scenario,"!!document.querySelector('#shelf-import')");
+            js(scenario,"location.hash='/studio';true");
             until(scenario,"!!document.querySelector('#chapter-body')");
             assertEquals("true",js(scenario,"Capacitor.isNativePlatform() && location.hash==='#/studio'"));
             js(scenario,"(()=>{const t=document.querySelector('#chapter-body');t.value='甲段。\\n\\n乙段。\\n\\n丙段。';t.dispatchEvent(new Event('input',{bubbles:true}));t.setSelectionRange(5,5);document.querySelector('#mark-chapter-point').click();t.setSelectionRange(10,10);document.querySelector('#mark-chapter-point').click();document.querySelector('#batch-chapter-split').click();document.querySelector('#confirm-batch-chapters').click();return true})()");
@@ -81,6 +83,19 @@ public class OfflineCreationTest {
                 JSONObject restored=new JSONObject(new String(Files.readAllBytes(manifest.toPath()),StandardCharsets.UTF_8));
                 assertNotEquals(oldKey,restored.getString("current"));assertTrue(restored.getJSONObject("entries").has(oldKey));
                 assertEquals(3,restored.getJSONObject("entries").getJSONObject(restored.getString("current")).getInt("chapters"));
+                js(scenario,"document.querySelector('[data-action=\"local-publish\"]').click();true");
+                until(scenario,"location.hash.startsWith('#/book/local-') && document.querySelector('.chapter-grid a')!==null");
+                File shelfManifest=new File(context.getFilesDir(),"books/index.json");assertTrue(shelfManifest.exists());
+                String localRoute=js(scenario,"location.hash");
+                js(scenario,"document.querySelector('.chapter-grid a').click();true");
+                until(scenario,"location.hash.startsWith('#/read/local-') && document.body.innerText.includes('甲段。')");
+                assertEquals("true",js(scenario,"document.body.innerText.includes('甲段。')"));
+                scenario.recreate();until(scenario,"document.body.innerText.includes('甲段。')");
+                js(scenario,"location.hash='/shelf';true");
+                until(scenario,"!!document.querySelector('.book-card[href*=\"local-\"]')");
+                js(scenario,"document.querySelector('.book-card[href*=\"local-\"]').click();true");
+                until(scenario,"location.hash==="+localRoute);
+                js(scenario,"location.hash='/studio';true");until(scenario,"!!document.querySelector('#native-folder')");
                 js(scenario,"Capacitor.nativePromise('DocumentAccess','pickFolder',{}).then(r=>document.body.dataset.fixtureTree=JSON.stringify(r));true");
                 until(scenario,"!!document.body.dataset.fixtureTree");
                 assertEquals(js(scenario,"document.body.dataset.fixtureTree"),"true",js(scenario,"JSON.parse(document.body.dataset.fixtureTree).files.some(f=>f.name==='第一章.txt')"));
