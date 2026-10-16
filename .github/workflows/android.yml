@@ -48,7 +48,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease testDebugUnitTest --no-daemon
+          ./gradlew :app:assembleRelease :app:testDebugUnitTest --no-daemon
           cp app/build/outputs/apk/release/app-release.apk ../wenxu-android.apk
           cd ..
           SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
@@ -94,7 +94,7 @@ jobs:
           script: |
             adb shell svc wifi disable
             adb shell svc data disable
-            cd android && ./gradlew connectedDebugAndroidTest --no-daemon
+            cd android && ./gradlew :app:connectedDebugAndroidTest --no-daemon
       - uses: actions/upload-artifact@v4
         if: always()
         with:
