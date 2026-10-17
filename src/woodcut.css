@@ -1,0 +1,354 @@
+/* ═══════════════════════════════════════════════════════════════════
+   文序 · 木刻皮肤 (woodcut)
+   黑白木刻：墨压旧纸，一点朱红；方角、粗线、高对比、强竖向节奏。
+   仅挂在 <html data-theme="woodcut"> 上，默认纸墨与 .night 不受影响。
+   纹理全部由渐变 / 阴影生成：无图片、无外部字体、无 JS。
+   调色：纸 #f1ead9 · 面 #faf6ec · 墨 #15110c · 淡墨 #5d5044
+        线 #1b150f · 朱 #8f1d18（--green 由墨黑顶替品牌角色）
+   字体：'Noto Serif SC','Songti SC',STSong,SimSun,serif
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 调色 ────────────────────────────────────────────────────────── */
+html[data-theme="woodcut"]{
+  --paper:#f1ead9;
+  --surface:#faf6ec;
+  --ink:#15110c;
+  --muted:#5d5044;
+  --line:#1b150f;
+  --green:#15110c;              /* 品牌角色改由墨黑承担 */
+  --accent:#8f1d18;
+
+  /* 只服务肌理的辅助色，不属于调色板 */
+  --wc-serif:'Noto Serif SC','Songti SC',STSong,SimSun,serif;
+  --wc-laid:rgba(21,17,12,.03);      /* 帘纹 */
+  --wc-grain:rgba(21,17,12,.055);    /* 纸颗粒 */
+  --wc-hatch:rgba(21,17,12,.28);     /* 刻线 */
+  --wc-print:#15110c22;              /* 版画硬投影 = 6px 6px 0 #15110c22 */
+  --wc-vignette:rgba(21,17,12,.07);  /* 纸边压色 */
+  --wc-accent-text:#8f1d18;          /* 小字朱色，保对比度 */
+  --wc-seal-text:#faf4e6;
+  --wc-backdrop:rgba(21,17,12,.55);
+
+  color:var(--ink);
+  background:var(--paper);
+  font-family:var(--wc-serif);
+  color-scheme:light;
+}
+
+/* 旧纸：帘纹 + 链线 + 颗粒，透明度极低 */
+html[data-theme="woodcut"] body{
+  min-height:100vh;
+  color:var(--ink);
+  background-color:var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg,var(--wc-laid) 0 1px,transparent 1px 4px),
+    repeating-linear-gradient(90deg,var(--wc-laid) 0 1px,transparent 1px 28px),
+    radial-gradient(circle at 50% 50%,var(--wc-grain) .5px,transparent .9px);
+  background-size:auto,auto,5px 5px;
+  box-shadow:inset 0 0 160px var(--wc-vignette);
+}
+
+/* ── 版面：报头、标题、分隔线 ────────────────────────────────────── */
+html[data-theme="woodcut"] header{border-bottom:3px double var(--line)}
+html[data-theme="woodcut"] .brand{color:var(--ink);font-weight:600;letter-spacing:.18em}
+html[data-theme="woodcut"] .brand span:last-child:not(.brand-icon){color:var(--muted);letter-spacing:.34em}
+/* 朱红印章：白文「文」＋双线刻边 */
+html[data-theme="woodcut"] .brand-icon{
+  width:34px;
+  height:34px;
+  background:var(--accent);
+  color:var(--wc-seal-text);
+  border-radius:0;
+  font-family:var(--wc-serif);
+  font-size:21px;
+  letter-spacing:0;
+  box-shadow:
+    inset 0 0 0 2px var(--wc-seal-text),
+    inset 0 0 0 3px var(--accent),
+    0 1px 0 var(--wc-print);
+}
+html[data-theme="woodcut"] nav{gap:30px;font-size:12.5px;letter-spacing:.14em}
+html[data-theme="woodcut"] nav a:not(.write-link){color:var(--ink);border-bottom:1.5px solid transparent}
+html[data-theme="woodcut"] nav a:not(.write-link):hover{border-bottom-color:var(--ink)}
+html[data-theme="woodcut"] .write-link{background:transparent;border:1.5px solid var(--line);border-radius:0;letter-spacing:.1em;box-shadow:2px 2px 0 var(--wc-print)}
+html[data-theme="woodcut"] .write-link:hover{background:var(--ink);color:var(--paper)}
+/* 标题与正文一律中文宋体 */
+html[data-theme="woodcut"] h1,
+html[data-theme="woodcut"] h2,
+html[data-theme="woodcut"] h3,
+html[data-theme="woodcut"] .reading,
+html[data-theme="woodcut"] em{font-family:var(--wc-serif)}
+html[data-theme="woodcut"] h1,
+html[data-theme="woodcut"] h2,
+html[data-theme="woodcut"] h3{font-weight:600;letter-spacing:0}
+html[data-theme="woodcut"] .eyebrow{color:var(--wc-accent-text);font-weight:700;letter-spacing:.3em}
+html[data-theme="woodcut"] .hero h1 span:after{bottom:-1px;height:2px;border-radius:0;background:var(--ink)}
+html[data-theme="woodcut"] .section-heading{border-bottom:1px solid var(--line);padding-bottom:16px}
+html[data-theme="woodcut"] .manifest{border-top:3px double var(--line);border-bottom:1px solid var(--line);letter-spacing:.08em}
+html[data-theme="woodcut"] footer{border-top:3px double var(--line)}
+html[data-theme="woodcut"] :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* ── 组件 ────────────────────────────────────────────────────────── */
+html[data-theme="woodcut"] .primary{
+  background:var(--ink);
+  border:1.5px solid var(--ink);
+  border-radius:0;
+  color:var(--paper);
+  font-weight:600;
+  letter-spacing:.1em;
+  box-shadow:3px 3px 0 var(--wc-print);
+}
+html[data-theme="woodcut"] .primary:hover{background:var(--ink);color:var(--paper);box-shadow:5px 5px 0 var(--wc-print)}
+html[data-theme="woodcut"] button,
+html[data-theme="woodcut"] select,
+html[data-theme="woodcut"] .secondary{
+  background:var(--surface);
+  border:1.5px solid var(--line);
+  border-radius:0;
+  color:var(--ink);
+  letter-spacing:.06em;
+}
+html[data-theme="woodcut"] button:hover,
+html[data-theme="woodcut"] .secondary:hover{background:var(--paper);border-color:var(--ink)}
+/* 刻日：同心刻线的太阳盘 */
+html[data-theme="woodcut"] .orb{
+  border:1.5px solid var(--wc-hatch);
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 50%,transparent 0 56%,var(--wc-hatch) 56.5% 57.5%,transparent 58%),
+    repeating-conic-gradient(from 0deg at 50% 50%,var(--wc-hatch) 0 1deg,transparent 1deg 6deg);
+}
+html[data-theme="woodcut"] .paper{
+  background-color:var(--surface);
+  background-image:repeating-linear-gradient(0deg,var(--wc-laid) 0 1px,transparent 1px 6px);
+  border:1.5px solid var(--line);
+  border-radius:0;
+  color:var(--ink);
+  box-shadow:12px 14px 0 var(--wc-print);
+}
+html[data-theme="woodcut"] .paper small,
+html[data-theme="woodcut"] .paper span{color:var(--muted);letter-spacing:.24em}
+html[data-theme="woodcut"] .paper-back{background:var(--ink);border-color:var(--line);color:var(--paper);box-shadow:none}
+html[data-theme="woodcut"] .paper-lines{
+  background:repeating-linear-gradient(0deg,var(--wc-hatch) 0 1.5px,transparent 1.5px 11px);
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+}
+html[data-theme="woodcut"] .art-caption{
+  color:var(--ink);
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.3em;
+  border-top:1px solid var(--line);
+  padding-top:6px;
+}
+html[data-theme="woodcut"] .book-card{background:var(--surface);border:2px solid var(--line);border-radius:0;box-shadow:6px 6px 0 #15110c22}
+html[data-theme="woodcut"] .book-card:hover{transform:none;box-shadow:9px 9px 0 #15110c22}
+html[data-theme="woodcut"] .cover{
+  background:var(--ink);
+  color:var(--paper);
+  border:1.5px solid var(--line);
+  border-left:6px solid var(--accent);
+  border-radius:0;
+  box-shadow:4px 4px 0 var(--wc-print);
+}
+html[data-theme="woodcut"] .cover>span,
+html[data-theme="woodcut"] .cover small{letter-spacing:.14em;opacity:.8}
+html[data-theme="woodcut"] .cover strong{font-family:var(--wc-serif);letter-spacing:.05em}
+/* 封面上的圆环改成斜刻线圆 */
+html[data-theme="woodcut"] .cover i{
+  border:1.5px solid currentColor;
+  border-radius:50%;
+  background:repeating-linear-gradient(45deg,currentColor 0 1px,transparent 1px 7px);
+  box-shadow:none;
+  opacity:.5;
+}
+html[data-theme="woodcut"] .cover-1{background:var(--accent);color:var(--wc-seal-text);border-left-color:var(--ink)}
+html[data-theme="woodcut"] .cover-2{background:var(--surface);color:var(--ink);border:2px solid var(--line);border-left:6px solid var(--accent)}
+html[data-theme="woodcut"] .cover-3{
+  background-color:var(--ink);
+  background-image:repeating-linear-gradient(45deg,rgba(250,244,230,.07) 0 2px,transparent 2px 9px);
+  color:var(--paper);
+}
+html[data-theme="woodcut"] .chapter-grid{border-top:2px solid var(--line)}
+html[data-theme="woodcut"] .chapter-grid a{color:var(--ink);border-bottom:1px solid var(--line)}
+html[data-theme="woodcut"] .chapter-grid a:hover{background:var(--ink);color:var(--paper)}
+html[data-theme="woodcut"] .chapter-grid a:hover :is(span,b){color:var(--paper);opacity:.72}
+/* 正文：1px 墨框 + 内缩一圈细双线 */
+html[data-theme="woodcut"] .reading{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:0;
+  box-shadow:inset 0 0 0 5px var(--surface),inset 0 0 0 6px var(--line);
+  letter-spacing:.02em;
+  text-align:justify;
+  text-justify:inter-ideograph;
+}
+html[data-theme="woodcut"] .reading h1{padding-bottom:14px;border-bottom:1px solid var(--line);letter-spacing:.04em}
+html[data-theme="woodcut"] .reading small{font-family:var(--wc-serif);letter-spacing:.16em}
+html[data-theme="woodcut"] .end-mark{color:var(--wc-accent-text);letter-spacing:.5em}
+html[data-theme="woodcut"] .reader-toc a.active{background:var(--ink);color:var(--paper);box-shadow:2px 2px 0 var(--wc-print)}
+html[data-theme="woodcut"] .editor{background:var(--surface);border:1.5px solid var(--line);border-radius:0;box-shadow:5px 5px 0 var(--wc-print)}
+html[data-theme="woodcut"] .editor-toc button.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+/* 输入控件：1.5px 墨框，全部方角 */
+html[data-theme="woodcut"] .studio-grid input,
+html[data-theme="woodcut"] .studio-grid textarea,
+html[data-theme="woodcut"] .studio-grid select,
+html[data-theme="woodcut"] input,
+html[data-theme="woodcut"] textarea,
+html[data-theme="woodcut"] select{
+  background-color:var(--surface);
+  border:1.5px solid var(--line);
+  border-radius:0;
+  color:var(--ink);
+  box-shadow:none;
+  letter-spacing:.02em;
+}
+html[data-theme="woodcut"] :is(input[type=range],input[type=checkbox],input[type=radio],input[type=file]){background:transparent;border:0;box-shadow:none}
+html[data-theme="woodcut"] #bookmark-filter,
+html[data-theme="woodcut"] #bookmark-note-input{background:var(--paper);border:1.5px solid var(--line);border-radius:0}
+html[data-theme="woodcut"] .search{color:var(--muted);border-bottom:2px solid var(--line)}
+html[data-theme="woodcut"] .search input{background:transparent;border:0;box-shadow:none;font-family:var(--wc-serif);letter-spacing:.06em}
+html[data-theme="woodcut"] .filters button{background:transparent;border:0;color:var(--muted);letter-spacing:.08em}
+html[data-theme="woodcut"] .filters button.active{background:var(--ink);color:var(--paper)}
+html[data-theme="woodcut"] .filters select{background:transparent;border:0;box-shadow:none}
+/* 导入面板：错位的墨线边框 */
+html[data-theme="woodcut"] .import-panel{background:var(--paper);border:1.5px solid var(--line);border-radius:0;box-shadow:6px 6px 0 var(--wc-print)}
+html[data-theme="woodcut"] .import-panel strong{font-family:var(--wc-serif);letter-spacing:.06em}
+html[data-theme="woodcut"] .import-panel #import-status{color:var(--wc-accent-text)}
+html[data-theme="woodcut"] .author-banner{background:var(--surface);border:3px double var(--line);border-radius:0;box-shadow:6px 6px 0 var(--wc-print)}
+html[data-theme="woodcut"] .publish-bar{background:var(--paper);border-top:2px solid var(--line);letter-spacing:.06em}
+html[data-theme="woodcut"] .empty{background:var(--surface);border:1.5px dashed var(--line);color:var(--muted);letter-spacing:.14em}
+html[data-theme="woodcut"] #toast{background:var(--ink);color:var(--paper);border-radius:0;letter-spacing:.1em;box-shadow:4px 4px 0 var(--wc-print)}
+/* 弹窗：双线墨框 */
+html[data-theme="woodcut"] dialog{
+  background:var(--surface);
+  border:1.5px solid var(--line);
+  border-radius:0;
+  box-shadow:inset 0 0 0 5px var(--surface),inset 0 0 0 6px var(--line),10px 10px 0 var(--wc-print);
+}
+html[data-theme="woodcut"] dialog::backdrop{background:var(--wc-backdrop);backdrop-filter:none}
+html[data-theme="woodcut"] :is(.chapter-split-tools,.breakpoint-editor,.split-preview section,.batch-break){background:var(--surface);border:1.5px solid var(--line);border-radius:0}
+html[data-theme="woodcut"] .breakpoint-line.has-breakpoint{background:rgba(143,29,24,.16);box-shadow:inset 0 -2px 0 var(--accent)}
+html[data-theme="woodcut"] .breakpoint-pin::after{border-left-color:var(--accent)}
+html[data-theme="woodcut"] :is(.breakpoint-entry button:last-child,#chapter-edit-error,#batch-error,#apply-error,#structure-error,#visual-source-error){color:var(--wc-accent-text)}
+/* 其它样式表里写死的 4–8px 圆角，统一方切（:is 取列表最高优先级） */
+html[data-theme="woodcut"] :is(
+  .draft-launcher,.split-title-label input,.structure-controls input,
+  .structure-candidate,.structure-health,.heading-learning,.import-results,
+  .reader-preferences,.mobile-chapters,.reading-dashboard,.history-card,
+  .reader-toc a,.reader-nav a,.chapter-filter,.book-search-row input,
+  .draft-box-tools input,.local-app-cards section,.visual-outline-pane,
+  #visual-source-text,.visual-source-find input,.import-mode-note,
+  .chapter-length-map>button,.chapter-length-map>span,.structure-confidence
+){border-radius:0}
+
+/* ── 暗色：入夜后刻在胡桃木上 ────────────────────────────────────── */
+html[data-theme="woodcut"].night{
+  --paper:#131009;
+  --surface:#1c1710;
+  --ink:#eadfc6;
+  --muted:#a8987e;
+  --line:#7a6746;
+  --green:#eadfc6;
+  --accent:#c8443a;
+
+  --wc-laid:rgba(234,223,198,.035);
+  --wc-grain:rgba(234,223,198,.05);
+  --wc-hatch:rgba(234,223,198,.2);
+  --wc-print:#00000066;
+  --wc-vignette:rgba(0,0,0,.45);
+  --wc-accent-text:#e2695e;
+  --wc-backdrop:rgba(0,0,0,.72);
+
+  background:var(--paper);
+  color:var(--ink);
+  color-scheme:dark;
+}
+/* 亮色下写死的封面与纸片，入夜后重刻 */
+html[data-theme="woodcut"].night .cover{background:#0b0805;color:#e7dcc3;border-color:#4a3a26;border-left-color:#9b2a22}
+html[data-theme="woodcut"].night .cover-1{background:#7c1b16;color:#f3e6cd;border-left-color:#e7dcc3}
+html[data-theme="woodcut"].night .cover-2{background:#1c1710;color:#eadfc6}
+html[data-theme="woodcut"].night .cover-3{background-color:#0b0805;color:#eadfc6}
+html[data-theme="woodcut"].night .paper{background-color:#1c1710;color:#eadfc6}
+html[data-theme="woodcut"].night .paper-back{background:#0b0805;color:#a8987e}
+html[data-theme="woodcut"].night .book-card{box-shadow:6px 6px 0 #00000066}
+html[data-theme="woodcut"].night .orb{opacity:.45}
+
+/* ── 手机：收装饰，版面不动 ──────────────────────────────────────── */
+@media(max-width:600px){
+  html[data-theme="woodcut"] header{border-bottom-width:2px}
+  html[data-theme="woodcut"] .brand{letter-spacing:.1em}
+  html[data-theme="woodcut"] .brand-icon{width:28px;height:28px;font-size:17px;box-shadow:inset 0 0 0 1px var(--wc-seal-text),0 1px 0 var(--wc-print)}
+  /* 还原原版窄屏报头：去框、去字距，避免撑出横向滚动 */
+  html[data-theme="woodcut"] nav{letter-spacing:0}
+  html[data-theme="woodcut"] .write-link{padding:8px 2px;border:0;letter-spacing:0;box-shadow:none}
+  html[data-theme="woodcut"] .art-caption{letter-spacing:.16em}
+  html[data-theme="woodcut"] .book-card{box-shadow:4px 4px 0 var(--wc-print)}
+  html[data-theme="woodcut"] .cover{border-left-width:4px;box-shadow:none}
+  html[data-theme="woodcut"] .paper{box-shadow:6px 6px 0 var(--wc-print)}
+  html[data-theme="woodcut"] .orb{opacity:.55}
+  html[data-theme="woodcut"] .reading{box-shadow:inset 0 0 0 3px var(--surface),inset 0 0 0 4px var(--line)}
+  html[data-theme="woodcut"] .import-panel,
+  html[data-theme="woodcut"] .editor,
+  html[data-theme="woodcut"] .author-banner{box-shadow:4px 4px 0 var(--wc-print)}
+  html[data-theme="woodcut"] dialog{box-shadow:inset 0 0 0 3px var(--surface),inset 0 0 0 4px var(--line),5px 5px 0 var(--wc-print)}
+  html[data-theme="woodcut"] #toast{box-shadow:3px 3px 0 var(--wc-print)}
+  html[data-theme="woodcut"] .woodcut-seal{width:28px;height:28px;font-size:11px}
+}
+
+/* ── 辅助钩子：木刻小印章与「仅木刻」区块 ────────────────────────── */
+/* 默认隐藏；只有 data-theme="woodcut" 时才出现 */
+.woodcut-seal{display:none}
+html[data-theme="woodcut"] .woodcut-seal{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  margin-left:10px;
+  background:var(--accent);
+  color:var(--wc-seal-text);
+  border-radius:0;
+  font-family:var(--wc-serif);
+  font-size:12px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:.02em;
+  vertical-align:middle;
+  box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 0 3px var(--wc-seal-text);
+}
+.woodcut-only{display:none}
+html[data-theme="woodcut"] .woodcut-only{display:block}
+/* 报头里的印章紧跟品牌名，不参与 space-between 的三等分 */
+html[data-theme="woodcut"] header .woodcut-seal{margin-right:auto}
+
+/* ── 一键分章 / 大模型设置 ───────────────────────────────────────── */
+html[data-theme="woodcut"] .smart-split-panel{
+  border:1.5px solid var(--line);
+  border-radius:0;
+  background:var(--surface);
+  box-shadow:6px 6px 0 var(--wc-print);
+}
+html[data-theme="woodcut"] .smart-split-intro strong{font-family:var(--wc-serif);letter-spacing:.06em}
+html[data-theme="woodcut"] .smart-split-actions .llm-state{letter-spacing:.04em}
+html[data-theme="woodcut"] .smart-options{border:1px dashed var(--line);border-radius:0;background:var(--paper)}
+html[data-theme="woodcut"] .smart-options input[type=number]{background:var(--surface);border:1.5px solid var(--line);border-radius:0}
+html[data-theme="woodcut"] .smart-chapter-list{border:1.5px solid var(--line);border-radius:0;background:var(--paper)}
+html[data-theme="woodcut"] .smart-chapter-list li{border-bottom:1px dotted var(--line)}
+html[data-theme="woodcut"] .smart-danger{color:var(--wc-accent-text)}
+html[data-theme="woodcut"] .llm-form input,
+html[data-theme="woodcut"] .llm-form select{background:var(--paper);border:1.5px solid var(--line);border-radius:0}
+html[data-theme="woodcut"] .llm-status{color:var(--wc-accent-text)}
+html[data-theme="woodcut"] details summary{color:var(--ink);letter-spacing:.06em}
+
+/* 工作台左侧栏只有 340px：加粗边框会挤坏按钮，收紧字距与内边距。 */
+html[data-theme="woodcut"] :is(.studio-chapter-tools,.editor-actions) button{
+  letter-spacing:0;
+  padding:6px 8px;
+  font-size:10px;
+  white-space:nowrap;
+}
+html[data-theme="woodcut"] .studio-chapter-tools{gap:6px}
+html[data-theme="woodcut"] .section-heading h2 em{letter-spacing:0;margin-left:6px}

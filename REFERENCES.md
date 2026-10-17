@@ -11,6 +11,24 @@
 
 本站的章节规则、整篇结构分析、文件夹排序、批量预览、限额处理和草稿存储由本仓库独立实现，没有复制上述项目的源代码，也没有把其后端作为运行依赖。对参考功能的说明不代表使用了其全部功能。
 
+- 1930 年代中国木刻版画（含鲁迅编印的木刻选集）与同时期书刊封面：仅参考黑白套色、粗刻线、印章式落款和方角排版的视觉语言。界面为原创 CSS，未复制任何具体作品或版画图像。
+
+## 可选大模型接口（默认关闭）
+
+大模型分章是可选连接器，只有用户自行配置并勾选后才会调用。本仓库用浏览器 `fetch` 直接请求下列服务的公开 HTTP 接口，未引入任何模型 SDK，也未复制其示例代码；接口字段以各家文档为准，发生变化时以文档为准更新适配。
+
+- [OpenAI Chat Completions](https://platform.openai.com/docs/api-reference/chat)
+- [DeepSeek API](https://api-docs.deepseek.com/)
+- [Moonshot / Kimi API](https://platform.moonshot.cn/docs)
+- [阿里云百炼 OpenAI 兼容模式](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope)
+- [智谱 GLM API](https://open.bigmodel.cn/dev/api)
+- [SiliconFlow](https://docs.siliconflow.cn/)、[OpenRouter](https://openrouter.ai/docs)、[Groq](https://console.groq.com/docs)
+- [Anthropic Messages API](https://docs.anthropic.com/en/api/messages)
+- [Google Gemini generateContent](https://ai.google.dev/api/generate-content)
+- [Ollama](https://github.com/ollama/ollama/blob/main/docs/openai.md)、[LM Studio 本地服务](https://lmstudio.ai/docs/app/api)：本机地址，无需密钥。
+
+密钥由用户自备，只保存在其本机浏览器；服务商的条款、计费与数据处理政策由用户与该服务商约定，本站没有账号系统或云端草稿。
+
 ## 直接使用的开源依赖
 
 - [Capacitor](https://github.com/ionic-team/capacitor)：原生安卓容器与桥接；[App](https://github.com/ionic-team/capacitor-plugins/tree/main/app)、[Filesystem](https://github.com/ionic-team/capacitor-filesystem) 用于生命周期与私有文件存储。不是把在线地址作为应用页面。
