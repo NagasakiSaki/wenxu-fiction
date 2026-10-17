@@ -1,16 +1,16 @@
 {
-  "engineVersion": "2.0.0",
-  "scope": "12份合成结构样例；衡量标题行边界，不衡量DOCX/PDF转换准确率，不代表任意真实文档表现。基线为本脚本定义的单条中文章名正则，不是对其他项目的评测。",
+  "engineVersion": "3.0.0",
+  "scope": "22份合成结构样例（含4份作者示例辅助用例）；衡量标题行边界，不衡量DOCX/PDF转换准确率，不代表任意真实文档表现。基线为本脚本定义的单条中文章名正则，不是对其他项目的评测。",
   "node": "v24.15.0",
   "baseline": {
-    "truePositive": 8,
-    "falsePositive": 2,
-    "falseNegative": 17,
-    "precision": 0.8,
-    "recall": 0.32,
-    "f1": 0.45714285714285713,
-    "exactDocuments": 3,
-    "totalDocuments": 12,
+    "truePositive": 19,
+    "falsePositive": 6,
+    "falseNegative": 31,
+    "precision": 0.76,
+    "recall": 0.38,
+    "f1": 0.5066666666666666,
+    "exactDocuments": 6,
+    "totalDocuments": 22,
     "rows": [
       {
         "name": "plain Chinese chapters",
@@ -22,6 +22,9 @@
           1,
           3
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -34,6 +37,9 @@
           2,
           6
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -43,6 +49,9 @@
           3
         ],
         "actual": [],
+        "boundaryEdits": 2,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
       },
       {
@@ -52,6 +61,9 @@
           3
         ],
         "actual": [],
+        "boundaryEdits": 2,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
       },
       {
@@ -61,6 +73,9 @@
           3
         ],
         "actual": [],
+        "boundaryEdits": 2,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
       },
       {
@@ -74,6 +89,9 @@
           3,
           5
         ],
+        "boundaryEdits": 1,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
       },
       {
@@ -87,6 +105,9 @@
           4,
           6
         ],
+        "boundaryEdits": 1,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
       },
       {
@@ -96,6 +117,9 @@
           6
         ],
         "actual": [],
+        "boundaryEdits": 2,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
       },
       {
@@ -106,6 +130,9 @@
           9
         ],
         "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
       },
       {
@@ -116,12 +143,18 @@
           9
         ],
         "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
       },
       {
         "name": "short outline is not a novel",
         "expected": [],
         "actual": [],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -132,19 +165,167 @@
           9
         ],
         "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": false
+      },
+      {
+        "name": "contents followed by body",
+        "expected": [
+          5,
+          7
+        ],
+        "actual": [
+          2,
+          3,
+          5,
+          7
+        ],
+        "boundaryEdits": 2,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": false
+      },
+      {
+        "name": "contents with page leaders",
+        "expected": [
+          5,
+          7
+        ],
+        "actual": [
+          2,
+          3,
+          5,
+          7
+        ],
+        "boundaryEdits": 2,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": false
+      },
+      {
+        "name": "two volumes with numbering reset",
+        "expected": [
+          2,
+          5
+        ],
+        "actual": [
+          2,
+          5
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "English volume and section",
+        "expected": [
+          2,
+          6
+        ],
+        "actual": [],
+        "boundaryEdits": 2,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": false
+      },
+      {
+        "name": "false contents mention in body",
+        "expected": [
+          1,
+          5
+        ],
+        "actual": [
+          1,
+          5
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "sparse duplicate empty heading",
+        "expected": [
+          1,
+          2,
+          4
+        ],
+        "actual": [
+          1,
+          2,
+          4
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "assisted pipe-number family",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": false
+      },
+      {
+        "name": "assisted unmarked plain titles",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": false
+      },
+      {
+        "name": "assisted wrapped titles",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": false
+      },
+      {
+        "name": "assisted negative example",
+        "expected": [
+          1,
+          5,
+          13
+        ],
+        "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 2,
+        "negativeSelections": 1,
         "exact": false
       }
     ]
   },
   "engine": {
-    "truePositive": 22,
+    "truePositive": 47,
     "falsePositive": 0,
     "falseNegative": 3,
     "precision": 1,
-    "recall": 0.88,
-    "f1": 0.9361702127659575,
-    "exactDocuments": 11,
-    "totalDocuments": 12,
+    "recall": 0.94,
+    "f1": 0.9690721649484536,
+    "exactDocuments": 21,
+    "totalDocuments": 22,
     "rows": [
       {
         "name": "plain Chinese chapters",
@@ -156,6 +337,9 @@
           1,
           3
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -168,6 +352,9 @@
           2,
           6
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -180,6 +367,9 @@
           1,
           3
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -192,6 +382,9 @@
           1,
           3
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -204,6 +397,9 @@
           1,
           3
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -216,6 +412,9 @@
           1,
           5
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -228,6 +427,9 @@
           1,
           6
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -240,6 +442,9 @@
           2,
           6
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -254,6 +459,9 @@
           5,
           9
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -268,12 +476,18 @@
           5,
           9
         ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
         "name": "short outline is not a novel",
         "expected": [],
         "actual": [],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": true
       },
       {
@@ -284,7 +498,530 @@
           9
         ],
         "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
         "exact": false
+      },
+      {
+        "name": "contents followed by body",
+        "expected": [
+          5,
+          7
+        ],
+        "actual": [
+          5,
+          7
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "contents with page leaders",
+        "expected": [
+          5,
+          7
+        ],
+        "actual": [
+          5,
+          7
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "two volumes with numbering reset",
+        "expected": [
+          2,
+          5
+        ],
+        "actual": [
+          2,
+          5
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "English volume and section",
+        "expected": [
+          2,
+          6
+        ],
+        "actual": [
+          2,
+          6
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "false contents mention in body",
+        "expected": [
+          1,
+          5
+        ],
+        "actual": [
+          1,
+          5
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "sparse duplicate empty heading",
+        "expected": [
+          1,
+          2,
+          4
+        ],
+        "actual": [
+          1,
+          2,
+          4
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "assisted pipe-number family",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [
+          1,
+          5,
+          9
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "assisted unmarked plain titles",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [
+          1,
+          5,
+          9
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "assisted wrapped titles",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [
+          1,
+          5,
+          9
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "assisted negative example",
+        "expected": [
+          1,
+          5,
+          13
+        ],
+        "actual": [
+          1,
+          5,
+          13
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 2,
+        "negativeSelections": 1,
+        "exact": true
+      }
+    ]
+  },
+  "automatic": {
+    "truePositive": 35,
+    "falsePositive": 0,
+    "falseNegative": 3,
+    "precision": 1,
+    "recall": 0.9210526315789473,
+    "f1": 0.958904109589041,
+    "exactDocuments": 17,
+    "totalDocuments": 18,
+    "rows": [
+      {
+        "name": "plain Chinese chapters",
+        "expected": [
+          1,
+          3
+        ],
+        "actual": [
+          1,
+          3
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "Markdown title and subordinate sections",
+        "expected": [
+          2,
+          6
+        ],
+        "actual": [
+          2,
+          6
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "Word bold paragraph conversion",
+        "expected": [
+          1,
+          3
+        ],
+        "actual": [
+          1,
+          3
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "bracketed episodes",
+        "expected": [
+          1,
+          3
+        ],
+        "actual": [
+          1,
+          3
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "English episodes",
+        "expected": [
+          1,
+          3
+        ],
+        "actual": [
+          1,
+          3
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "narrative references and completion markers",
+        "expected": [
+          1,
+          5
+        ],
+        "actual": [
+          1,
+          5
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "fenced sample headings",
+        "expected": [
+          1,
+          6
+        ],
+        "actual": [
+          1,
+          6
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "repeated unnumbered Markdown level",
+        "expected": [
+          2,
+          6
+        ],
+        "actual": [
+          2,
+          6
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "bare Arabic sequence with prose",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [
+          1,
+          5,
+          9
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "bare Chinese sequence with prose",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [
+          1,
+          5,
+          9
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "short outline is not a novel",
+        "expected": [],
+        "actual": [],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "known limitation: unnumbered plain titles",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [],
+        "boundaryEdits": 3,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": false
+      },
+      {
+        "name": "contents followed by body",
+        "expected": [
+          5,
+          7
+        ],
+        "actual": [
+          5,
+          7
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "contents with page leaders",
+        "expected": [
+          5,
+          7
+        ],
+        "actual": [
+          5,
+          7
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "two volumes with numbering reset",
+        "expected": [
+          2,
+          5
+        ],
+        "actual": [
+          2,
+          5
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "English volume and section",
+        "expected": [
+          2,
+          6
+        ],
+        "actual": [
+          2,
+          6
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "false contents mention in body",
+        "expected": [
+          1,
+          5
+        ],
+        "actual": [
+          1,
+          5
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "sparse duplicate empty heading",
+        "expected": [
+          1,
+          2,
+          4
+        ],
+        "actual": [
+          1,
+          2,
+          4
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 0,
+        "negativeSelections": 0,
+        "exact": true
+      }
+    ]
+  },
+  "assisted": {
+    "truePositive": 12,
+    "falsePositive": 0,
+    "falseNegative": 0,
+    "precision": 1,
+    "recall": 1,
+    "f1": 1,
+    "exactDocuments": 4,
+    "totalDocuments": 4,
+    "rows": [
+      {
+        "name": "assisted pipe-number family",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [
+          1,
+          5,
+          9
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "assisted unmarked plain titles",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [
+          1,
+          5,
+          9
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "assisted wrapped titles",
+        "expected": [
+          1,
+          5,
+          9
+        ],
+        "actual": [
+          1,
+          5,
+          9
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 2,
+        "negativeSelections": 0,
+        "exact": true
+      },
+      {
+        "name": "assisted negative example",
+        "expected": [
+          1,
+          5,
+          13
+        ],
+        "actual": [
+          1,
+          5,
+          13
+        ],
+        "boundaryEdits": 0,
+        "exampleSelections": 2,
+        "negativeSelections": 1,
+        "exact": true
       }
     ]
   },
@@ -292,6 +1029,17 @@
     "characters": 1610893,
     "expectedChapters": 1000,
     "actualChapters": 1000,
-    "elapsedMs": 15.91
+    "integrity": {
+      "ok": true,
+      "bodyExact": true,
+      "normalization": "去除BOM、统一换行；正文首尾空白规范化；标题格式单独记录",
+      "sourceCharacters": 1606893,
+      "bodyCharacters": 1600000,
+      "headingCharacters": 6893,
+      "archiveCharacters": 0,
+      "unaccountedCharacters": 0,
+      "archivedLineCount": 0
+    },
+    "elapsedMs": 53.67
   }
 }

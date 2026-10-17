@@ -36,16 +36,23 @@ public class OfflineCreationTest {
         while (System.currentTimeMillis() < deadline) { if ("true".equals(js(scenario, expression))) return; Thread.sleep(150); }
         fail("App condition timed out: " + expression + " body=" + js(scenario,"document.body.innerText.slice(-1000)"));
     }
-    private void tapFileInput(ActivityScenario<MainActivity> scenario) throws Exception {
+    private void tapFileInput(ActivityScenario<MainActivity> scenario) throws Exception {tapFileInput(scenario,"#restore");}
+    private void tapFileInput(ActivityScenario<MainActivity> scenario,String selector) throws Exception {
+        String target=JSONObject.quote(selector);
         // File choosers require an actual user gesture; synthetic JS .click()
         // is deliberately blocked by WebView and would not test the app flow.
-        js(scenario,"document.querySelector('#restore').scrollIntoView({block:'center'});true");
-        JSONArray point=new JSONArray(js(scenario,"(()=>{const r=document.querySelector('#restore').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2,devicePixelRatio]})()"));
+        js(scenario,"document.querySelector("+target+").scrollIntoView({block:'center'});true");
+        JSONArray point=new JSONArray(js(scenario,"(()=>{const r=document.querySelector("+target+").getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2,devicePixelRatio]})()"));
         int[] origin=new int[2];scenario.onActivity(activity->activity.getBridge().getWebView().getLocationOnScreen(origin));
         float x=origin[0]+(float)(point.getDouble(0)*point.getDouble(2)),y=origin[1]+(float)(point.getDouble(1)*point.getDouble(2));
         long now=SystemClock.uptimeMillis();Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();
         MotionEvent down=MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0),up=MotionEvent.obtain(now,now+60,MotionEvent.ACTION_UP,x,y,0);
         instrumentation.sendPointerSync(down);instrumentation.sendPointerSync(up);down.recycle();up.recycle();
+    }
+    private void startNewDraft(ActivityScenario<MainActivity> scenario) throws Exception {
+        String before=js(scenario,"document.querySelector('[data-field=id]').value");
+        js(scenario,"document.querySelector('.draft-launcher [data-action=new]').click();true");
+        until(scenario,"document.querySelector('[data-field=id]').value!=="+before);
     }
     @Test public void offlineBatchSaveReopenAndPortableDraftRoundTrip() throws Exception {
         Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
@@ -55,11 +62,12 @@ public class OfflineCreationTest {
             js(scenario,"location.hash='/studio';true");
             until(scenario,"!!document.querySelector('#chapter-body')");
             assertEquals("true",js(scenario,"Capacitor.isNativePlatform() && location.hash==='#/studio'"));
+            startNewDraft(scenario);
             js(scenario,"(()=>{const t=document.querySelector('#chapter-body');t.value='甲段。\\n\\n乙段。\\n\\n丙段。';t.dispatchEvent(new Event('input',{bubbles:true}));t.setSelectionRange(5,5);document.querySelector('#mark-chapter-point').click();t.setSelectionRange(10,10);document.querySelector('#mark-chapter-point').click();document.querySelector('#batch-chapter-split').click();document.querySelector('#confirm-batch-chapters').click();return true})()");
             until(scenario,"document.querySelectorAll('.editor-toc button').length===3 && !document.querySelector('dialog[open]')");
             File manifest=new File(context.getFilesDir(),"drafts/index.json");assertTrue(manifest.exists());
             JSONObject index=new JSONObject(new String(Files.readAllBytes(manifest.toPath()),StandardCharsets.UTF_8));
-            String oldKey=index.getString("current");assertEquals(2,index.getJSONObject("entries").length());
+            String oldKey=index.getString("current");assertTrue(index.getJSONObject("entries").length()>=2);
             scenario.recreate();until(scenario,"!!document.querySelector('#shelf-import')");
             js(scenario,"location.hash='/studio';true");until(scenario,"document.querySelectorAll('.editor-toc button').length===3");
             assertEquals("\"甲段。\\n\\n\"",js(scenario,"document.querySelector('#chapter-body').value"));
@@ -108,4 +116,40 @@ public class OfflineCreationTest {
             } finally { instrumentation.removeMonitor(monitor); }
         }
     }
+    @Test public void offlineExampleLearningPersistsAndReusesRules() throws Exception {
+        Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+        String prose="雨水落在站台上，他收好信，走向最后一盏亮着的灯。".repeat(8);
+        File input=new File(context.getCacheDir(),"chapter-learning.txt");
+        Files.writeString(input.toPath(),"01｜雨夜\n\n"+prose+"\n\n02｜灯火\n\n"+prose+"\n\n03｜来信\n\n"+prose,StandardCharsets.UTF_8);
+        Uri uri=FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",input);
+        Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();
+        Instrumentation.ActivityMonitor monitor=new Instrumentation.ActivityMonitor(){
+            @Override public Instrumentation.ActivityResult onStartActivity(Intent intent){
+                if(Intent.ACTION_GET_CONTENT.equals(intent.getAction())||Intent.ACTION_OPEN_DOCUMENT.equals(intent.getAction()))return new Instrumentation.ActivityResult(Activity.RESULT_OK,new Intent().setData(uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                return null;
+            }
+        };
+        instrumentation.addMonitor(monitor);
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            until(scenario,"!!document.querySelector('main')");js(scenario,"location.hash='/studio';true");until(scenario,"!!document.querySelector('#document')");
+            startNewDraft(scenario);
+            js(scenario,"document.querySelector('#import-mode').value='replace';true");tapFileInput(scenario,"#document");
+            until(scenario,"!!document.querySelector('[data-review-source=\"0\"]')");js(scenario,"document.querySelector('[data-review-source=\"0\"]').click();true");
+            until(scenario,"!!document.querySelector('[data-example-positive=\"5\"]')");
+            js(scenario,"document.querySelector('[data-example-positive=\"1\"]').click();document.querySelector('[data-example-positive=\"5\"]').click();document.querySelector('#learn-headings').click();true");
+            until(scenario,"!!document.querySelector('#apply-import') && document.querySelector('#dialog h2').textContent.includes('3 章')");
+            assertEquals("true",js(scenario,"document.querySelector('#dialog').textContent.includes('原文覆盖核对通过')"));
+            js(scenario,"document.querySelector('#apply-import').click();true");until(scenario,"document.querySelectorAll('.editor-toc button').length===3 && !document.querySelector('dialog[open]')");
+            File manifest=new File(context.getFilesDir(),"drafts/index.json");JSONObject index=new JSONObject(Files.readString(manifest.toPath(),StandardCharsets.UTF_8));
+            String snapshot=index.getJSONObject("entries").getJSONObject(index.getString("current")).getString("file");
+            JSONObject saved=new JSONObject(Files.readString(new File(context.getFilesDir(),snapshot).toPath(),StandardCharsets.UTF_8));
+            assertTrue(saved.getJSONArray("chapterProfiles").length()>0);
+            assertEquals("wenxu-heading-profile-v1",saved.getJSONArray("chapterProfiles").getJSONObject(0).getString("format"));
+            scenario.recreate();until(scenario,"!!document.querySelector('main')");js(scenario,"location.hash='/studio';true");until(scenario,"!!document.querySelector('#document')");
+            tapFileInput(scenario,"#document");until(scenario,"!!document.querySelector('[data-review-source=\"0\"]')");js(scenario,"document.querySelector('[data-review-source=\"0\"]').click();true");
+            until(scenario,"!!document.querySelector('#use-heading-profile')");js(scenario,"document.querySelector('#use-heading-profile').click();true");
+            until(scenario,"!!document.querySelector('#apply-import') && document.querySelector('#dialog h2').textContent.includes('3 章')");
+        }finally{instrumentation.removeMonitor(monitor);}
+    }
+
 }

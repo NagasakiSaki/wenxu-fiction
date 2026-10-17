@@ -1,0 +1,13 @@
+import {headingNumber} from './chapter-numbers.js';
+export function auditWork(chapters){
+ const lengths=chapters.map(c=>c.body.replace(/\s/g,'').length),sorted=[...lengths].sort((a,b)=>a-b),median=sorted[Math.floor(sorted.length/2)]||0,issues=[],bodies=new Map(),titles=new Map();let previous=null;
+ chapters.forEach((c,i)=>{const number=headingNumber(c.title),titleKey=(c.volume||'')+'\0'+c.title;
+  if(!lengths[i])issues.push({code:'empty-body',chapter:i,message:'正文为空，加入阅读书架前需要补齐。'});
+  if(lengths[i]&&lengths[i]<80)issues.push({code:'short-body',chapter:i,message:'正文不足80字，核对是否为目录条目或刻意保留的短章。'});
+  if(lengths[i]>40000||chapters.length>=4&&median>=80&&(lengths[i]>median*3.5||lengths[i]<median*.15))issues.push({code:'unusual-length',chapter:i,message:`本章${lengths[i]}字，全文中位篇幅${median}字，核对是否漏切或误切。`});
+  if(titles.has(titleKey))issues.push({code:'duplicate-title',chapter:i,message:`同卷内与第${titles.get(titleKey)+1}章标题相同。`});titles.set(titleKey,i);
+  if(c.body.trim()&&bodies.has(c.body))issues.push({code:'duplicate-body',chapter:i,message:`与第${bodies.get(c.body)+1}章正文完全相同，可能重复导入。`});if(c.body.trim())bodies.set(c.body,i);
+  if(number!==null){if(previous&&previous.volume===(c.volume||'')&&number!==previous.number+1)issues.push({code:'sequence-gap',chapter:i,message:`编号${previous.number} → ${number}，核对缺章、重复或有意重编号。`});previous={number,volume:c.volume||''};}
+ });return {chapters:chapters.length,characters:lengths.reduce((a,b)=>a+b,0),median,lengths,issues};
+}
+export function workHealthMarkup(chapters,esc,{interactive=false}={}){const audit=auditWork(chapters),max=Math.max(1,...audit.lengths);return `<section class="structure-health"><h3>整书体检 · ${audit.chapters}章</h3><p>${audit.characters.toLocaleString()}字 · 中位篇幅${audit.median}字 · ${audit.issues.length}项核对提示</p><div class="chapter-length-map" aria-label="整书章节篇幅分布">${audit.lengths.slice(0,120).map((length,i)=>`<${interactive?'button':'span'} ${interactive?`type="button" data-health-chapter="${i}"`:''} title="第${i+1}章 · ${length}字" style="--chapter-height:${Math.max(5,Math.round(length/max*100))}%"><span class="sr-only">第${i+1}章，${length}字</span></${interactive?'button':'span'}>`).join('')}</div><small>图表最多预览120章，检查覆盖全部章节；${interactive?'点击柱形或下方提示定位章节。':''}提示不是错误判定，不会自动删改。</small>${audit.issues.length?`<details ${interactive?'open':''}><summary>编号、篇幅与重复内容核对</summary><ol>${audit.issues.slice(0,300).map(d=>`<li>${interactive?`<button data-health-chapter="${d.chapter}">第${d.chapter+1}章 · ${esc(chapters[d.chapter].title)}</button>`:`第${d.chapter+1}章`}：${esc(d.message)}</li>`).join('')}</ol>${audit.issues.length>300?'<small>此处显示前300项；可分批检查修正后重新体检。</small>':''}</details>`:'<p>未发现当前规则可检出的异常；仍请核对章节内容和顺序。</p>'}</section>`;}

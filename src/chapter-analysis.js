@@ -1,3 +1,5 @@
+import {learnHeadingProfile,validateHeadingProfile,matchesHeadingProfile} from './heading-profile.js';
+import {findContents,advancedStructure} from './structure-intelligence.js';
 import {inferNumberedHeadings,structureEvidence} from './structure-evidence.js';
 // Analyse the whole document before selecting boundaries. Markdown heading level
 // alone is not sufficient: a novel can have a title, subtitle and chapter outlines.
@@ -18,31 +20,37 @@ function chapterKind(item){
  if(cn){if(/^(?:的|完(?:结|本|\s|[\/／（(]|$)|结束|终了|[-–—~～至到]\s*第?\s*[\d一二三四五六七八九十])/.test(cn[2].trim()))return '';
   if(!level&&/[。；;]$/.test(text))return '';
   return ['卷','部'].includes(cn[1])?'volume':cn[1]==='节'?'section':'chapter';}
+ if(/^(?:volume|part)\s*(?:\d+|[ivxlcdm]+)\b/i.test(text))return 'volume';
+ if(/^(?:section)\s*\d+\b/i.test(text))return 'section';
  if(/^(?:chapter|episode|ep\.?)\s*(?:\d+|[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten)\b/i.test(text)&&!/(?:\bend|complete)\s*$/i.test(text))return 'chapter';
  if(/^(序章|楔子|序言|前言|尾声|终章|后记|番外|prologue|epilogue)(?:\s|[：:、]|$)/i.test(text))return 'special';
  return '';
 }
 const separator=line=>/^\s*(?:[-*_=·─━]\s*){3,}\s*$/.test(line);
 const meaningful=text=>text.split('\n').some(line=>line.trim()&&!separator(line));
-export function analyseChapters(input,{fallbackTitle='序言',boundaryLines}={}){
+export function analyseChapters(input,{fallbackTitle='序言',boundaryLines,profile,positiveLines,negativeLines=[]}={}){
  const lines=String(input).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').split('\n');
  const items=lines.map((line,index)=>{const h=heading(line);return {...h,index,kind:chapterKind(h)};});
  // Never interpret headings or apparent chapter names inside fenced code as boundaries.
  let fence=null;for(const item of items){const m=lines[item.index].trim().match(/^(`{3,}|~{3,})/);if(m){if(!fence)fence=m[1];else if(m[1][0]===fence[0]&&m[1].length>=fence.length)fence=null;item.kind='';item.level=0;item.fenced=true;}else if(fence){item.kind='';item.level=0;item.fenced=true;}}
- const explicit=items.filter(h=>h.kind==='chapter');
- const secondary=items.filter(h=>h.kind==='section');
- const inferred=explicit.length||secondary.length?[]:inferNumberedHeadings(items,lines);
- const primary=explicit.length?explicit:secondary.length?secondary:inferred;
+ const contents=findContents(items,lines),activeItems=items.filter(h=>!contents.excluded.has(h.index));
+ if(positiveLines!==undefined){if(positiveLines.some(n=>items[n-1]?.fenced))throw Error('代码块内不能作为标题示例');profile=learnHeadingProfile(lines,positiveLines,negativeLines);}
+ if(profile)validateHeadingProfile(profile);
+ const learned=profile?activeItems.filter(h=>!h.fenced&&h.text.length<=100&&matchesHeadingProfile(lines[h.index],profile)&&(h.index===0||!lines[h.index-1].trim()||h.level||positiveLines?.includes(h.index+1))&&lines.slice(h.index+1,h.index+5).some(line=>line.trim())).map(h=>({...h,kind:'learned'})):[];
+ const explicit=activeItems.filter(h=>h.kind==='chapter');
+ const secondary=activeItems.filter(h=>h.kind==='section');
+ const inferred=explicit.length||secondary.length?[]:inferNumberedHeadings(activeItems,lines);
+ const primary=learned.length?learned:explicit.length?explicit:secondary.length?secondary:inferred;
  let boundaries=[],method='整篇文档';
  if(primary.length){
   const levels=primary.filter(h=>h.level).map(h=>h.level),level=levels.length?Math.min(...levels):6;
-  const primarySet=new Set(primary.map(h=>h.index));boundaries=items.filter(h=>primarySet.has(h.index)||(h.kind==='special'&&(!h.level||h.level<=level)));
-  method=explicit.length?'明确章节标题':secondary.length?'编号分节标题':'连续编号与正文结构推断';
+  const primarySet=new Set(primary.map(h=>h.index));boundaries=activeItems.filter(h=>primarySet.has(h.index)||(h.kind==='special'&&(!h.level||h.level<=level)));
+  method=learned.length?'本书示例学习':explicit.length?'明确章节标题':secondary.length?'编号分节标题':'连续编号与正文结构推断';
  }else{
-  const specials=items.filter(h=>h.kind==='special');
+  const specials=activeItems.filter(h=>h.kind==='special');
   if(specials.length){boundaries=specials;method='序章与尾声标题';}
   else{
-   const candidates=items.filter(h=>h.level&&h.text.length<=100&&!/^(?:【?本章|主视角|人物设定|章节大纲)/.test(h.text));
+   const candidates=activeItems.filter(h=>h.level&&h.text.length<=100&&!/^(?:【?本章|主视角|人物设定|章节大纲)/.test(h.text));
    // Prefer a common structural level; title/subtitle levels that occur only once
    // must not become independent chapters when repeated deeper headings exist.
    const repeated=[1,2,3,4,5,6].find(level=>candidates.filter(h=>h.level===level).length>1);
@@ -55,6 +63,7 @@ export function analyseChapters(input,{fallbackTitle='序言',boundaryLines}={})
   boundaries=boundaryLines.map(line=>{if(!Number.isInteger(line)||line<1||line>lines.length)throw Error('分界行超出文档范围');const item=items[line-1];if(!item.text||item.text.length>100||item.fenced||separator(item.text))throw Error('请选择100字以内的非空标题行，代码和分隔线不能作为标题');return item;}).sort((a,b)=>a.index-b.index);method='作者校正分界';
  }
  if(boundaries.length>1000)throw Error('识别分界超过1000个，请拆分文档后导入');
+ const structureOnly=new Set([...contents.excluded,...(boundaries.length?activeItems.filter(h=>h.kind==='volume').map(h=>h.index):[])]),bodyLines=new Set();
  const chapters=[],frontMatter=[];let title='',subtitle='';
  const first=boundaries[0]?.index??lines.length;
  // Only remove title/subtitle headings before the first selected chapter.
@@ -70,13 +79,16 @@ export function analyseChapters(input,{fallbackTitle='序言',boundaryLines}={})
     (firstText.decorated||/^《.+》/.test(firstText.text)||prefixItems.slice(1).some(h=>/^——/.test(h.text)||metadataLine(h.text)))){title=firstText.text;metadataIndices.add(firstText.index);}
   if(title){for(const h of prefixItems){if(/^——/.test(h.text)){if(!metadataIndices.has(h.index))subtitle+=(subtitle?'\n':'')+h.text;metadataIndices.add(h.index);}else if(metadataLine(lines[h.index]))metadataIndices.add(h.index);}}
  }
- const prose=prefix.filter((_,index)=>!metadataIndices.has(index));
+ const prose=prefix.filter((_,index)=>!metadataIndices.has(index)&&!structureOnly.has(index));
  if(metadataIndices.size)frontMatter.push(...prefix.filter((_,index)=>metadataIndices.has(index)));
- if(meaningful(prose.join('\n'))&&boundaries.length)chapters.push({title:'序言',body:prose.join('\n').trim(),sourceStartLine:1,sourceEndLine:first});
+ if(meaningful(prose.join('\n'))&&boundaries.length){chapters.push({title:'序言',body:prose.join('\n').trim(),sourceStartLine:1,sourceEndLine:first});for(let i=0;i<first;i++)if(!metadataIndices.has(i)&&!structureOnly.has(i))bodyLines.add(i);}
  if(boundaries.length){for(let i=0;i<boundaries.length;i++){
-  const current=boundaries[i],end=boundaries[i+1]?.index??lines.length,body=lines.slice(current.index+1,end).join('\n').trim();
-  if(meaningful(body))chapters.push({title:current.text,body,sourceStartLine:current.index+1,sourceEndLine:end});
- }}else if(meaningful(input))chapters.push({title:fallbackTitle,body:String(input).trim(),sourceStartLine:1,sourceEndLine:lines.length});
+  const current=boundaries[i],end=boundaries[i+1]?.index??lines.length,body=lines.slice(current.index+1,end).filter((_,i)=>!structureOnly.has(current.index+1+i)).join('\n').trim();
+  if(meaningful(body)){chapters.push({title:current.text,body,sourceStartLine:current.index+1,sourceEndLine:end});for(let j=current.index+1;j<end;j++)if(!structureOnly.has(j))bodyLines.add(j);}
+ }}else if(meaningful(input)){chapters.push({title:fallbackTitle,body:lines.join('\n').trim(),sourceStartLine:1,sourceEndLine:lines.length});for(let i=0;i<lines.length;i++)bodyLines.add(i);}
  // A heading-only document is not a readable chapter.
- return {chapters,title,subtitle,frontMatter:frontMatter.join('\n'),method,...structureEvidence({items,lines,boundaries,chapters,method,inferred,manual:boundaryLines!==undefined})};
+ const producedHeadings=new Set(boundaries.filter(h=>chapters.some(c=>c.sourceStartLine===h.index+1)).map(h=>h.index));
+ const archivedLines=lines.flatMap((_,i)=>!bodyLines.has(i)&&!producedHeadings.has(i)?[i]:[]);
+ const evidence=structureEvidence({items,lines,boundaries,chapters,method,inferred,manual:boundaryLines!==undefined});
+ return {chapters,title,subtitle,frontMatter:archivedLines.map(i=>lines[i]).join('\n').trim(),method,...evidence,...advancedStructure({items,lines,chapters,boundaries,evidence,archivedLines,contents,profile})};
 }
