@@ -125,7 +125,17 @@ export function orderDiagnostics(chapters) {
     notes.push({code: 'repeated-number', level: '警告', message: '整篇章节编号相同，可能是重复抓取或标题误判，请核对预览。'});
     return notes;
   }
+  const descending = numbered.slice(1).filter((item, index) => item.number < numbered[index].number).length;
+  if (descending > numbered.length * 0.3) notes.push({code: 'descending-number', level: '警告', message: `有 ${descending} 处编号比上一章更小，可能抓取顺序颠倒；可对照原文核对后再应用。`});
+  const gaps = numbered.slice(1).filter((item, index) => item.number - numbered[index].number > 1).length;
+  if (gaps) notes.push({code: 'number-gap', level: '提示', message: `有 ${gaps} 处章节编号跳号，可能是缺章，也可能只是抓取时漏了楼层。`});
   return notes;
+}
+
+function biggestChapterShare(chapters) {
+  const total = chapters.reduce((sum, chapter) => sum + compact(chapter.body), 0);
+  if (!total) return 1;
+  return Math.max(...chapters.map(chapter => compact(chapter.body))) / total;
 }
 
 function validateBoundaryLines(lines, sourceLines) {
@@ -168,16 +178,22 @@ export function smartSplit(input, {
   let analysis = analyseChapters(cleanedText, {fallbackTitle, profile});
   method = analysis.method;
 
-  // 大模型候选优先；否则在引擎只得到整篇时，才启用规律标题识别。
+  // 大模型候选优先；否则在引擎只得到整篇、或某一章明显吞掉全文时，补充规律标题识别。
   let boundaryLines = null;
   if (llmLines?.length) {
     boundaryLines = validateBoundaryLines(llmLines, cleaned);
     method = '大模型分章';
-  } else if (analysis.chapters.length <= 1) {
-    forum = detectForumHeadings(cleaned);
-    if (forum.headings.length >= 2) {
-      boundaryLines = validateBoundaryLines(forum.headings.map(heading => heading.line), cleaned);
-      method = '规律标题识别';
+  } else {
+    const dominant = analysis.chapters.length <= 1 || (text.length >= 4000 && biggestChapterShare(analysis.chapters) > 0.5);
+    if (dominant) {
+      forum = detectForumHeadings(cleaned);
+      const found = forum.headings.map(heading => heading.line);
+      const existing = analysis.boundaryLines || [];
+      const merged = [...new Set([...existing, ...found])].sort((a, b) => a - b);
+      if (found.length >= 2 && merged.length > existing.length) {
+        boundaryLines = validateBoundaryLines(merged, cleaned);
+        method = '规律标题识别';
+      }
     }
   }
 

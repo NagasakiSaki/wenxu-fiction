@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {detectNoise, cleanLines, noiseSummary} from '../src/forum-noise.js';
 import {parseForumHeading, detectForumHeadings, describeForumTemplate} from '../src/forum-headings.js';
-import {smartSplit, applySmartSplit, rebaseBreakpoints, mergeShortChapters, chapterRanges, draftText} from '../src/smart-split.js';
+import {smartSplit, applySmartSplit, rebaseBreakpoints, mergeShortChapters, chapterRanges, draftText, orderDiagnostics} from '../src/smart-split.js';
 
 const paragraph = '雨点敲在瓦上，他抬头看了一眼远处的灯，没有说话。街上的人已经散尽，只剩一辆自行车靠在墙边。';
 const prose = (count = 8) => Array.from({length: count}, () => paragraph).join('\n');
@@ -120,6 +120,32 @@ test('大模型给出的分界行交给引擎验证，正文仍按原文还原',
   assert.equal(result.method, '大模型分章');
   assert.equal(result.chapters.length, 3);
   assert.ok(result.integrity.ok);
+});
+
+test('某章吞掉大部分正文时用规律标题补足分界，并保留已有标题', () => {
+  const lines = ['第1章 开端', ...prose(6).split('\n'), '第2章 中段', ...prose(6).split('\n')];
+  for (let index = 1; index <= 4; index++) lines.push(`${index}、后续${index}`, ...prose(20).split('\n'));
+  const result = smartSplit(lines.join('\n'), {minChars: 200});
+  assert.equal(result.method, '规律标题识别');
+  assert.equal(result.chapters[0].title, '第1章 开端');
+  assert.equal(result.chapters[1].title, '第2章 中段');
+  assert.equal(result.chapters.length, 6);
+  assert.ok(result.integrity.ok);
+});
+
+test('编号顺序体检只报告异常，不改动章节', () => {
+  const flip = [
+    {title: '第3章', body: prose(2)},
+    {title: '第2章', body: prose(2)},
+    {title: '第1章', body: prose(2)}
+  ];
+  const notes = orderDiagnostics(flip);
+  assert.ok(notes.some(note => note.code === 'descending-number'));
+  assert.equal(flip[0].title, '第3章');
+
+  const gap = [{title: '第1章', body: prose(2)}, {title: '第5章', body: prose(2)}];
+  assert.ok(orderDiagnostics(gap).some(note => note.code === 'number-gap'));
+  assert.deepEqual(orderDiagnostics([{title: '第一章', body: '甲'}, {title: '第二章', body: '乙'}]), []);
 });
 
 test('碎章合并有保护：短章超过一半时整体放弃合并', () => {
