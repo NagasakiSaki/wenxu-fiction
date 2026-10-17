@@ -1,6 +1,6 @@
-﻿# 文序开发者指南
+# 文序开发者指南
 
-本文面向接手维护、扩展分章算法、开发阅读体验或构建安卓应用的开发者。以 **应用 v2.4.0、结构引擎 v3.1.0** 的实现为基准；依赖版本以 `package-lock.json` 为准，测试数量以实际输出为准。
+本文面向接手维护、扩展分章算法、开发阅读体验或构建安卓应用的开发者。以 **应用 v2.5.0、结构引擎 v3.1.0** 的实现为基准；依赖版本以 `package-lock.json` 为准，测试数量以实际输出为准。
 
 文序使用原生 JavaScript ES Modules、Vite、IndexedDB 和 Capacitor。网页与安卓共用创作、分章和阅读代码，平台差异集中在文件访问、存储及生命周期适配层。
 
@@ -39,6 +39,7 @@ npm run dev
 | `npm run preview` | 预览 `dist/`，默认端口 4173 |
 | `npm run benchmark` | 输出合成样例的结构评测 |
 | `npm run benchmark:editor` | 输出长篇高亮镜像与智能分章的耗时基准 |
+| `npm run smoke:ui` | 用无头 Chrome 打开工作台，走通分章、校对与换肤 |
 | `npm run build:native` | 生成 `dist-native/`，同步资源与插件到安卓工程 |
 
 `predev`、`prebuild` 和 `prebuild:native:web` 会执行 [`scripts/prepare-document-assets.mjs`](../scripts/prepare-document-assets.mjs)，从已安装依赖复制 PDF 字体、字符映射、WASM 和许可证。请使用 npm 脚本构建；只调用 `vite build` 可能漏掉这些准备步骤。
@@ -77,6 +78,12 @@ flowchart TD
 | [`src/chapter-breakpoint-view.js`](../src/chapter-breakpoint-view.js) | 断点高亮镜像层、精确竖线、滚动与尺寸同步 |
 | [`src/forum-noise.js`](../src/forum-noise.js)、[`src/forum-headings.js`](../src/forum-headings.js) | 站点杂讯过滤、规律型标题识别（贴吧/转载文本） |
 | [`src/smart-split.js`](../src/smart-split.js)、[`src/smart-split-ui.js`](../src/smart-split-ui.js) | 一键分章编排、断点迁移、整篇预览与应用 |
+| [`src/smart-split-engine.js`](../src/smart-split-engine.js)、[`src/smart-split-worker.js`](../src/smart-split-worker.js) | 分章的 Worker 包装与无 Worker 回退 |
+| [`src/boundary-review.js`](../src/boundary-review.js)、[`src/boundary-review-ui.js`](../src/boundary-review-ui.js) | 分界校对窗口、增删校验与覆盖重算 |
+| [`src/draft-source.js`](../src/draft-source.js) | 抓取原文快照（仅本机，不进入公开作品） |
+| [`src/book-export.js`](../src/book-export.js) | TXT / Markdown 导出与章名统一 |
+| [`src/storage-health.js`](../src/storage-health.js) | 存储配额判断与旧备份轮换 |
+| [`src/text-tidy.js`](../src/text-tidy.js) | 零宽字符、不换行空格与软连字符清洗 |
 | [`src/llm-providers.js`](../src/llm-providers.js)、[`src/llm-client.js`](../src/llm-client.js) | 大模型服务商预设与 HTTP 适配（OpenAI 兼容 / Anthropic / Gemini） |
 | [`src/llm-chapter-service.js`](../src/llm-chapter-service.js)、[`src/llm-settings.js`](../src/llm-settings.js) | 标题识别提示词与校验、密钥与配置的本机存储 |
 | [`src/theme.js`](../src/theme.js)、[`src/woodcut.css`](../src/woodcut.css) | 纸墨 / 版画两种界面风格与切换 |
@@ -87,7 +94,7 @@ flowchart TD
 | [`src/platform-runtime.js`](../src/platform-runtime.js)、[`src/local-app.js`](../src/local-app.js) | 平台检测、PWA 更新与原生生命周期 |
 | [`src/native-documents.js`](../src/native-documents.js)、[`src/file-export.js`](../src/file-export.js) | 安卓文件选择/另存为与网页下载适配 |
 | [`content/books/`](../content/books/) | 进入公开站点的作品 JSON |
-| [`tests/`](../tests/)、[`benchmarks/`](../benchmarks/) | 自动化回归与公开合成样例 |
+| [`tests/`](../tests/)、[`benchmarks/`](../benchmarks/)、[`scripts/smoke-ui.mjs`](../scripts/smoke-ui.mjs) | 自动化回归、公开合成样例与无头浏览器冒烟 |
 | [`android/`](../android/) | Capacitor 原生工程、文件桥接与设备测试 |
 
 主要路由：`#/` 发现页、`#/book/:id` 作品详情、`#/read/:id/:chapter` 阅读页、`#/studio` 创作、`#/shelf` 书架、`#/library` 书签与历史、`#/app` 安装说明。阅读路由还支持位置参数。安卓无 hash 启动时进入书架，PWA 清单的启动入口是工作台。
@@ -161,16 +168,32 @@ const {next, backup} = applySmartSplit(draft, result); // 先备份，再写入�
 
 维护时必须保持：杂讯规则只在整行确实是站点控件时删除（关键词规则还要求整行较短且不像叙事句）；章节顺序始终按原文顺序，不做按编号重排；分章后仍要通过 `integrity.ok` 才能点亮“应用”按钮。
 
+#### 分界校对与示例重扫
+
+预览里的“在原文中校对分界”会把 `cleanedText` 与 `boundaryLines` 交给 [`src/boundary-review.js`](../src/boundary-review.js)：
+
+- `windowRows` 按中心行取 240 行窗口，行号始终是全文 1 起始行号；
+- `setHeading` 增删分界并校验空行、超长行与分隔线；
+- `buildReview` 用当前分界重新调用 `analyseChapters`，返回章节与 `integrity`，200 ms 防抖后刷新摘要，覆盖不通过时禁用应用。
+
+校对时把 2–12 个分界当作标题正例，可以触发“本书示例学习”：`smartSplit` 接收 `positiveLines` 并传给引擎，引擎用 `heading-profile` 归纳写法后重扫全篇。这条路径完全离线，适合“第X话”“◇ 12 ◇”这类规则没覆盖的格式。
+
+#### 原文快照与重新分析
+
+应用智能分章时，原始粘贴文本会写入草稿的 `importSource`（[`src/draft-source.js`](../src/draft-source.js)）：超过 200 万字符不保存，空文本忽略。快照随草稿与草稿备份保存在本机，但 `exported()`（公开作品）、本地阅读副本和结构报告都不包含它——它们是别人的阅读材料，不是作者的工作底稿。再次打开“一键分章”时可以选择“上次保存的原文”重新分析。
+
 ### 3.4 可选的大模型分章
 
 默认产品完全离线。大模型是可选连接器，用它只做一件事：指出哪一行是章节标题。
 
 - **服务商**：[`src/llm-providers.js`](../src/llm-providers.js) 内置 OpenAI、DeepSeek、Moonshot、通义千问（百炼兼容模式）、智谱、SiliconFlow、OpenRouter、Groq、Ollama、LM Studio、Anthropic、Gemini 以及自定义 OpenAI 兼容地址。
 - **请求**：[`src/llm-client.js`](../src/llm-client.js) 按 `kind` 组装三种 HTTP 形状（OpenAI `/chat/completions`、Anthropic `/messages`、Gemini `:generateContent`），统一超时、取消与中文错误映射；不引入任何 SDK。错误信息不包含密钥。
-- **提示词**：[`src/llm-chapter-service.js`](../src/llm-chapter-service.js) 把清洗后的文本按约 2.4 万字符分段，行号使用全文行号；要求只输出 `{"chapters":[{"line":12,"title":"…"}]}`，越界、重复、空标题一律丢弃，解析失败重试一次；总正文上限 12 万字符。
+- **候选行模式（默认）**：`candidateLines` 只挑短行（≤60 字、不以句末标点结束）和能被 `parseForumHeading` 解析的行，站点控件直接跳过；提示词声明“未列出的行都是正文”，返回的行号还必须在候选集合内，模型无法对正文行下手。
+- **全文模式**：保留“发送全文”开关兜底，代价是费用与暴露面都更高；长段落是否值得发送由作者决定。
+- **提示词**：按约 2.4 万字符分段，行号使用全文行号；要求只输出 `{"chapters":[{"line":12,"title":"…"}]}`，越界、重复、空标题一律丢弃，解析失败重试一次；候选行合计上限 12 万字符。
 - **校验**：模型返回的行号再作为 `boundaryLines` 交给结构引擎，正文仍从原文还原。模型即使编造行号或改写文字，也不会进入草稿。
 - **密钥**：[`src/llm-settings.js`](../src/llm-settings.js) 把设置与密钥分开存放（`wenxu-llm-config` 与 `wenxu-llm-key` / 会话级 `wenxu-llm-key-session`）。密钥不属于草稿、草稿备份、公开作品或导出文件；不勾选“记住”时只存在于当前会话。
-- **隐私**：只有勾选“使用大模型识别标题”并点击开始分析时，清洗后的正文片段才会发送给所配置的服务；离线规则不受影响。Ollama / LM Studio 指向本机地址。
+- **隐私**：默认只把候选短行发送给所配置的服务，离线规则不受影响；Ollama / LM Studio 指向本机地址。
 
 失败时的处理：`401/403` 提示密钥或权限、`404` 提示地址或模型名、`429` 提示频率或额度、超时与取消统一提示；识别出的标题少于 2 个时建议改用离线规则或原文点选。
 
@@ -212,8 +235,8 @@ const result = analyseVisualPlan('第一章 开始\n正文甲。正文乙。', {
 
 | 类型 | 标识与用途 | 不包含/注意事项 |
 | --- | --- | --- |
-| 公开作品 JSON | `id` 与 `chapters` 等作品字段；阅读或提交仓库 | 公开导出移除 `draftKey`、`chapterProfiles`、`importNotes` |
-| 草稿备份 JSON | `format: "wenxu-draft-v1"`，包含 `draft`、导出时间和平台 | 允许未完成资料，保留示例规则及导入资料；恢复时生成新 `draftKey` |
+| 公开作品 JSON | `id` 与 `chapters` 等作品字段；阅读或提交仓库 | 公开导出移除 `draftKey`、`chapterProfiles`、`importNotes`、`importSource` |
+| 草稿备份 JSON | `format: "wenxu-draft-v1"`，包含 `draft`、导出时间和平台 | 允许未完成资料，保留示例规则、导入资料与原文快照；恢复时生成新 `draftKey` |
 | 阅读备份 JSON | `format: "wenxu-reading-backup-v1"`，包含 `data` | 仅书签与历史，不含作品正文或作者草稿 |
 | 结构报告 JSON | `format: "wenxu-structure-report-v1"` | 统计、位置及规则证据；不含标题、正文、路径，不能用来恢复手稿 |
 
@@ -248,6 +271,9 @@ const result = analyseVisualPlan('第一章 开始\n正文甲。正文乙。', {
 | 收藏、阅读设置与位置 | `wenxu-shelf`、`wenxu-progress`、`wenxu-settings`、`wenxu-reading-position` 等 localStorage 键 | WebView localStorage |
 | 界面风格 | localStorage `wenxu-skin`（`paper` / `woodcut`） | WebView localStorage |
 | 大模型设置与密钥 | localStorage `wenxu-llm-config`；密钥在 `wenxu-llm-key` 或会话级 `wenxu-llm-key-session` | WebView localStorage |
+| 抓取原文快照 | 草稿内的 `importSource`（仅本机，不进入公开作品/阅读副本） | 同草稿文件 |
+
+草稿带 `schemaVersion`（当前 `DRAFT_SCHEMA = 2`）；字段缺失按 1 处理，读取路径不得因缺少该字段失败。草稿箱中的“操作前备份”以标题含“备份”识别，[`src/storage-health.js`](../src/storage-health.js) 的 `selectBackups` 只保留最近 12 份，当前草稿与回收站中的项目永不清理；网页端真正删除，安卓端移入回收站。
 
 网页数据库键中 `current` 存当前草稿，`draft:<key>` 存正文记录，`summary:<key>` 存草稿箱摘要。已有旧 `wenxu-draft` 的迁移逻辑，调整数据库时要保留兼容路径。
 
@@ -267,7 +293,9 @@ const result = analyseVisualPlan('第一章 开始\n正文甲。正文乙。', {
 | 调整拆章/合并 | 优先修改 `chapter-edit.js`；验证原文、编号、卷归属、空章拒绝和保存前备份 |
 | 增加阅读偏好 | 在读取时提供默认值，验证旧设置、手机布局、分页及位置恢复；不要扩大正文的 localStorage 使用 |
 | 增加界面风格 | 在 `theme.js` 的 `SKINS` 加一项并在 `woodcut.css` 同样以 `html[data-theme="…"]` 作用域覆盖变量；不要改动默认 `:root` |
-| 调整大模型提示词 | 修改 `llm-chapter-service.js`，保持“只输出标题行号 + JSON 校验 + 行号范围校验”，不要允许模型返回正文 |
+| 调整大模型提示词 | 修改 `llm-chapter-service.js`，保持“只输出标题行号 + JSON 校验 + 行号范围/候选集合校验”，不要允许模型返回正文 |
+| 增加导出格式 | 在 `book-export.js` 加纯函数，经 `exportTextFile` 落地；不要绕过 `exportJsonFile` 的 32 MB 检查 |
+| 增加阅读排版 | 修改 `readerSettings` 与 `reader-controls.js` 的 `layout()`；竖排只允许滚动模式，翻页依赖水平宽度计算 |
 | 调整书架更新 | 保持 `sourceId` 与稳定本地 ID，验证同书更新后的书签和进度 |
 | 添加云端能力 | 需要单独设计后端、鉴权、访问控制与冲突合并；当前本机存储接口不提供这些保证 |
 
@@ -283,7 +311,9 @@ node scripts/validate-books.mjs
 npm run build
 ```
 
-定向回归可以执行 `node --test tests/visual-source.test.js`、`node --test tests/chapter-edit.test.js` 等。v2.4.0 的 Node 套件为 155 项，覆盖分章、长篇、批量顺序、编辑、阅读、存储、站点杂讯、规律标题、智能分章、大模型请求与风格设置；IndexedDB 测试使用 `fake-indexeddb`，不能代替真实浏览器和安卓文件系统验证。大模型用例使用注入的假 `fetch`，不会访问网络。
+定向回归可以执行 `node --test tests/visual-source.test.js`、`node --test tests/chapter-edit.test.js` 等。v2.5.0 的 Node 套件为 185 项，覆盖分章、长篇、批量顺序、编辑、阅读、存储、站点杂讯、规律标题、智能分章、分界校对、大模型请求、导出与风格设置；IndexedDB 测试使用 `fake-indexeddb`，不能代替真实浏览器和安卓文件系统验证。大模型用例使用注入的假 `fetch`，不会访问网络。
+
+涉及弹窗接线与时序的改动还应跑一次 `npm run smoke:ui`：脚本用本机 Chrome 的 DevTools 协议打开 `vite preview` 产物，走“一键分章 → 预览 → 分界校对 → 返回 → 换肤”四步，不引入 Playwright；CI 的 `smoke` 作业会额外上传截图。`npm run benchmark:editor` 只测纯字符串处理，不能当作手机渲染帧率。
 
 结构算法修改还应执行：
 
@@ -346,7 +376,7 @@ Fork 或更换部署路径时，需要一起检查 `vite.config.js` 的 `base`�
 
 正式签名使用 Actions Secrets：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`。CI 临时还原 keystore，并向 Gradle 提供 `ANDROID_KEYSTORE_PATH`、`ANDROID_KEYSTORE_PASSWORD`；密钥别名为 `wenxu`。不要把真实密码、密钥或其 Base64 写入文档、命令历史、仓库或日志。
 
-当前应用 ID 为 `io.github.nagasakisaki.wenxu`，版本为 `versionName "2.4.0"` / `versionCode 20400`。覆盖安装更新必须沿用应用 ID 与原签名密钥，并提高 versionCode。普通开发者用 debug 构建验证；独立发行应使用自己的应用身份和签名，不替换维护者正式密钥。
+当前应用 ID 为 `io.github.nagasakisaki.wenxu`，版本为 `versionName "2.5.0"` / `versionCode 20500`。覆盖安装更新必须沿用应用 ID 与原签名密钥，并提高 versionCode。普通开发者用 debug 构建验证；独立发行应使用自己的应用身份和签名，不替换维护者正式密钥。
 
 ### 9.3 维护者发布流程
 

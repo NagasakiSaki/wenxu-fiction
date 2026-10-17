@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {detectNoise, cleanLines, noiseSummary} from '../src/forum-noise.js';
 import {parseForumHeading, detectForumHeadings, describeForumTemplate} from '../src/forum-headings.js';
 import {smartSplit, applySmartSplit, rebaseBreakpoints, mergeShortChapters, chapterRanges, draftText, orderDiagnostics} from '../src/smart-split.js';
+import {runSmartSplit} from '../src/smart-split-engine.js';
 
 const paragraph = '雨点敲在瓦上，他抬头看了一眼远处的灯，没有说话。街上的人已经散尽，只剩一辆自行车靠在墙边。';
 const prose = (count = 8) => Array.from({length: count}, () => paragraph).join('\n');
@@ -218,4 +219,15 @@ test('长章可按篇幅生成断点建议', () => {
 test('空文本与超限文本给出明确错误', () => {
   assert.throws(() => smartSplit('   '), /没有可分析的正文/);
   assert.throws(() => smartSplit('回复\n回复\n回复\n'), /没有剩余正文|没有可分析的正文/);
+});
+
+test('没有 Worker 的环境同步回退，结果与直接调用一致', async () => {
+  const source = numberedSource(4);
+  const viaEngine = await runSmartSplit(source, {minChars: 200});
+  const direct = smartSplit(source, {minChars: 200});
+  assert.equal(viaEngine.chapters.length, direct.chapters.length);
+  assert.equal(viaEngine.method, direct.method);
+  assert.equal(viaEngine.cleanedText, direct.cleanedText);
+  assert.equal(viaEngine.integrity.ok, true);
+  await assert.rejects(() => runSmartSplit('   '), /没有可分析的正文/);
 });

@@ -57,6 +57,11 @@ function evaluate(line) {
   return {remove: false, code: null, label: '', evidence: []};
 }
 
+/** 单行判定，供只关心“这一行是不是站点控件”的调用方使用。 */
+export function noiseVerdict(line) {
+  return evaluate(line);
+}
+
 /**
  * 逐行判定站点杂讯。
  * @param {string[]} lines 已统一换行的原始行

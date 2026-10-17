@@ -6,6 +6,7 @@ import {cleanLines, detectNoise} from './forum-noise.js';
 import {describeForumTemplate, detectForumHeadings} from './forum-headings.js';
 import {suggestBreaks} from './break-suggestions.js';
 import {MAX_BOOK_CHARACTERS} from './limits.js';
+import {tidyText} from './text-tidy.js';
 
 const compact = text => String(text).replace(/\s/g, '').length;
 
@@ -17,14 +18,16 @@ export function normalizeText(input) {
  * 统一换行并（可选）过滤站点杂讯。界面与大模型行号都基于这份清洗结果，
  * 保证“识别出的行号”和“真正切分的行”是同一套坐标。
  */
-export function prepareSource(input, {cleanNoise = true} = {}) {
-  const text = normalizeText(input);
+export function prepareSource(input, {cleanNoise = true, tidy = true} = {}) {
+  const raw = normalizeText(input);
+  const tidied = tidy ? tidyText(raw) : {text: raw, changed: false, removed: {zeroWidth: 0, noBreakSpace: 0, softHyphen: 0}};
+  const text = tidied.text;
   const lines = text.split('\n');
   const noise = cleanNoise
     ? detectNoise(lines)
     : {remove: new Set(), entries: [], suspects: [], counts: {}, removedCharacters: 0};
   const cleanedLines = cleanNoise ? cleanLines(lines, noise) : lines;
-  return {text, lines, cleanedLines, cleanedText: cleanedLines.join('\n'), noise};
+  return {text, lines, cleanedLines, cleanedText: cleanedLines.join('\n'), noise, tidy: tidied};
 }
 
 /** 草稿各章正文拼成的整篇文本；与断点偏移使用同一套规则。 */
@@ -159,15 +162,18 @@ function validateBoundaryLines(lines, sourceLines) {
  */
 export function smartSplit(input, {
   cleanNoise = true,
+  tidy = true,
   mergeShort = true,
   minChars = 400,
   suggestLongChapterBreaks = false,
   breakTarget = 3000,
   profile,
+  positiveLines,
+  negativeLines = [],
   llmLines,
   fallbackTitle = '序言'
 } = {}) {
-  const {text, lines, cleanedLines: cleaned, cleanedText, noise} = prepareSource(input, {cleanNoise});
+  const {text, lines, cleanedLines: cleaned, cleanedText, noise, tidy: tidied} = prepareSource(input, {cleanNoise, tidy});
   if (!compact(text)) throw Error('没有可分析的正文');
   if (text.length > MAX_BOOK_CHARACTERS) throw Error('单部作品最多 200 万字符，请拆分文件后分章');
 
@@ -175,7 +181,7 @@ export function smartSplit(input, {
 
   let method = '';
   let forum = null;
-  let analysis = analyseChapters(cleanedText, {fallbackTitle, profile});
+  let analysis = analyseChapters(cleanedText, {fallbackTitle, profile, positiveLines, negativeLines});
   method = analysis.method;
 
   // 大模型候选优先；否则在引擎只得到整篇、或某一章明显吞掉全文时，补充规律标题识别。
@@ -198,7 +204,7 @@ export function smartSplit(input, {
   }
 
   if (boundaryLines?.length) {
-    analysis = analyseChapters(cleanedText, {fallbackTitle, profile, boundaryLines});
+    analysis = analyseChapters(cleanedText, {fallbackTitle, profile, positiveLines, negativeLines, boundaryLines});
   }
 
   let chapters = analysis.chapters.map(chapter => ({
@@ -238,7 +244,9 @@ export function smartSplit(input, {
   return {
     format: 'wenxu-smart-split-v1',
     chapters,
+    cleanedText,
     method,
+    tidy: {changed: tidied.changed, removed: tidied.removed},
     boundaryLines: boundaryLines || analysis.boundaryLines || [],
     noise,
     forum: forum ? {...forum, summary: describeForumTemplate(forum.template)} : null,
@@ -251,6 +259,7 @@ export function smartSplit(input, {
       removedLines: noise.entries.length,
       removedCharacters: noise.removedCharacters,
       suspectedLines: noise.suspects.length,
+      invisibleCharacters: tidied.removed.zeroWidth + tidied.removed.noBreakSpace + tidied.removed.softHyphen,
       mergedChapters: mergeReport.merged,
       suggestedBreakpoints: suggested,
       candidateCount: analysis.metrics?.candidateCount ?? 0

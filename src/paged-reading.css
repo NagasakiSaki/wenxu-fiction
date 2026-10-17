@@ -1,2 +1,13 @@
 .reader-nav a:first-child{display:inline-flex}
 .is-paged-reading header,.is-paged-reading footer,.is-paged-reading .reader-layout>aside{display:none}.reader-layout.paged-reader{display:block;max-width:950px;margin:0 auto;padding:10px}.paged-reader .reader-main{height:calc(100dvh - 20px);display:flex;flex-direction:column}.paged-reader .reader-toolbar{padding:8px 3px;flex-shrink:0}.reader-exit{margin-right:12px;color:var(--green)}.paged-reader .reader-preferences{padding:8px 12px;flex-shrink:0}.paged-reader .mobile-chapters{padding:9px;margin-top:8px;flex-shrink:0}.paged-reader .reader-nav{padding:2px 0;margin:6px 0;flex-shrink:0}.paged-reader .page-controls{padding:4px 0;flex-shrink:0}.paged-reader .reading{flex:1;display:flex;flex-direction:column;min-height:240px;margin:0;padding:18px 30px}.paged-reader .reading>small{flex-shrink:0}.paged-reader .reading h1{font-size:1.2em;line-height:1.6;margin:10px 0 18px;flex-shrink:0}.paged-reader .reading-body{flex:1;height:auto;min-height:120px}.paged-reader .reading-tip{display:none}.paged-reader .reader-preferences[open]{max-height:50dvh;overflow:auto}.paged-reader .mobile-chapters[open]{max-height:50dvh;overflow:auto}@media(max-width:600px){.reader-layout.paged-reader{padding:6px 10px}.paged-reader .reader-main{height:calc(100dvh - 12px)}.paged-reader .reading{padding:16px}.paged-reader .reader-toolbar button{min-height:36px;font-size:11px}.paged-reader .reader-toolbar>span{font-size:11px}.paged-reader .page-controls button{min-height:36px;padding:7px 12px}.paged-reader .reader-nav a{padding:8px 10px}.paged-reader .reader-nav span{padding:8px 4px}}
+
+/* 竖排：仅滚动模式，正文自右向左成列；翻页模式会先自动切回滚动。 */
+.reading.vertical{writing-mode:vertical-rl;text-orientation:mixed;height:min(70vh,760px);max-height:70vh;overflow-x:auto;overflow-y:hidden;padding:34px 30px}
+.reading.vertical>small{display:block;max-width:none;white-space:normal;margin-bottom:18px;line-height:1.8}
+.reading.vertical h1{margin:0 0 0 34px;font-size:1.35em}
+.reading.vertical p{margin:0 0 0 1.4em;text-indent:2em;line-height:inherit}
+.reading.vertical .reading-body{display:block}
+.reading.vertical .end-mark{margin:0 0 0 2em;text-align:center}
+.reading.vertical #bookmark-current{right:auto;left:14px;top:12px}
+@media(max-width:600px){.reading.vertical{height:62vh;max-height:66vh;padding:20px 16px}.reading.vertical h1{margin-left:20px}}
+.reading.vertical{width:100%;box-sizing:border-box}

@@ -27,7 +27,7 @@ export function bindBreakpointView(editor){
   mirror.style.width=(editor.clientWidth+parseFloat(style.borderLeftWidth)+parseFloat(style.borderRightWidth))+'px';
   mirror.style.height=editor.offsetHeight+'px';sync();
  }
- function update(points){marks=[...points];mirror.innerHTML=marks.length?breakpointMarkup(editor.value,marks):'';mirror.hidden=!marks.length;size();}
+ function update(points){marks=[...points];if(!marks.length&&!mirror.innerHTML){mirror.hidden=true;return;}mirror.innerHTML=marks.length?breakpointMarkup(editor.value,marks):'';mirror.hidden=!marks.length;size();}
  function jump(offset){
   editor.focus({preventScroll:true});editor.setSelectionRange(offset,offset);
   const pin=mirror.querySelector(`[data-pin="${offset}"]`);
@@ -35,7 +35,9 @@ export function bindBreakpointView(editor){
   editor.scrollIntoView({block:'center'});
   editor.dispatchEvent(new Event('select'));
  }
- editor.addEventListener('scroll',sync);editor.addEventListener('input',()=>update(marks));
+ // 输入事件可能连发（输入法、快捷键），合并到下一帧只重建一次镜像。
+ let frame=0;const schedule=()=>{if(frame)return;const run=()=>{frame=0;update(marks);};frame=typeof requestAnimationFrame==='function'?requestAnimationFrame(run):setTimeout(run,16);};
+ editor.addEventListener('scroll',sync);editor.addEventListener('input',schedule);
  const observer=new ResizeObserver(size);observer.observe(editor);
  // Rebinding replaces the editor; stop observing detached nodes after that render.
  const removal=new MutationObserver(()=>{if(!editor.isConnected){observer.disconnect();removal.disconnect();}});

@@ -352,3 +352,12 @@ html[data-theme="woodcut"] :is(.studio-chapter-tools,.editor-actions) button{
 }
 html[data-theme="woodcut"] .studio-chapter-tools{gap:6px}
 html[data-theme="woodcut"] .section-heading h2 em{letter-spacing:0;margin-left:6px}
+
+/* 章首刻印：版画风格下用朱色方印突出章节首字，纯 CSS，不插入额外标记。 */
+html[data-theme="woodcut"] .reading h1::first-letter{
+  background:var(--accent);
+  color:var(--wc-seal-text);
+  padding:.06em .18em;
+  margin-inline-end:.3em;
+  box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 0 3px var(--wc-seal-text);
+}

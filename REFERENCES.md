@@ -41,6 +41,7 @@
 - [PDF.js](https://github.com/mozilla/pdf.js)：文字型 PDF 提取。
 - [Vite](https://github.com/vitejs/vite)：本地开发和构建。
 - [fake-indexeddb](https://github.com/dumbmatter/fakeIndexedDB)：仅用于草稿存储自动化测试，不参与生产包。
+- 无头浏览器冒烟测试使用本机 Chrome 与 [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/)，由 `scripts/smoke-ui.mjs` 通过 Node 内置 `WebSocket` 直接驱动；**未引入 Playwright、Puppeteer 或 Selenium**。CI 使用 GitHub Actions 运行器预装的 Google Chrome。
 
 以上依赖保留各自许可证及版权说明。PDF.js、Mammoth、Turndown、GFM 插件与 DOMPurify 的许可证随构建产物一起提供于 `pdfjs/licenses/`。其他完整声明见 npm 包目录。参考设计与使用库分别列出，避免将依赖或他人工作误写为本站原创。
 
