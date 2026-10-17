@@ -90,5 +90,5 @@ export function analyseChapters(input,{fallbackTitle='序言',boundaryLines,prof
  const producedHeadings=new Set(boundaries.filter(h=>chapters.some(c=>c.sourceStartLine===h.index+1)).map(h=>h.index));
  const archivedLines=lines.flatMap((_,i)=>!bodyLines.has(i)&&!producedHeadings.has(i)?[i]:[]);
  const evidence=structureEvidence({items,lines,boundaries,chapters,method,inferred,manual:boundaryLines!==undefined});
- return {chapters,title,subtitle,frontMatter:archivedLines.map(i=>lines[i]).join('\n').trim(),method,...evidence,...advancedStructure({items,lines,chapters,boundaries,evidence,archivedLines,contents,profile})};
+ return {chapters,title,subtitle,archivedLines,frontMatter:archivedLines.map(i=>lines[i]).join('\n').trim(),method,...evidence,...advancedStructure({items,lines,chapters,boundaries,evidence,archivedLines,contents,profile})};
 }

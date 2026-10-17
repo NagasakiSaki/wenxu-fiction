@@ -1,5 +1,5 @@
 {
-  "engineVersion": "3.0.0",
+  "engineVersion": "3.1.0",
   "scope": "22份合成结构样例（含4份作者示例辅助用例）；衡量标题行边界，不衡量DOCX/PDF转换准确率，不代表任意真实文档表现。基线为本脚本定义的单条中文章名正则，不是对其他项目的评测。",
   "node": "v24.15.0",
   "baseline": {
@@ -1040,6 +1040,6 @@
       "unaccountedCharacters": 0,
       "archivedLineCount": 0
     },
-    "elapsedMs": 53.67
+    "elapsedMs": 61.06
   }
 }

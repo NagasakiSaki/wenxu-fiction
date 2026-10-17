@@ -1,6 +1,7 @@
+import {analyseVisualPlan} from './visual-source-model.js';
 import {analyseChapters} from './chapter-analysis.js';
 export async function runChapterAnalysis(text,options={}){
- if(typeof Worker==='undefined'){await new Promise(resolve=>setTimeout(resolve,0));return analyseChapters(text,options);}
+ if(typeof Worker==='undefined'){await new Promise(resolve=>setTimeout(resolve,0));return options.visualPlan?analyseVisualPlan(text,options):analyseChapters(text,options);}
  return new Promise((resolve,reject)=>{
   const worker=new Worker(new URL('./chapter-worker.js',import.meta.url),{type:'module'});
   const finish=(error,result)=>{clearTimeout(timer);worker.terminate();error?reject(Error(error)):resolve(result);};

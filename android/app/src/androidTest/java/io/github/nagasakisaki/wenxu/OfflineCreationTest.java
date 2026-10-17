@@ -152,4 +152,37 @@ public class OfflineCreationTest {
         }finally{instrumentation.removeMonitor(monitor);}
     }
 
+    private void tapSourceInsideFirstBody(ActivityScenario<MainActivity> scenario) throws Exception {
+        js(scenario,"document.querySelector('#visual-source-text').scrollIntoView({block:'center'});true");
+        JSONArray point=new JSONArray(js(scenario,"(()=>{const t=document.querySelector('#visual-source-text'),r=t.getBoundingClientRect(),s=getComputedStyle(t),canvas=document.createElement('canvas'),c=canvas.getContext('2d');c.font=s.fontSize+' '+s.fontFamily;return [r.left+parseFloat(s.paddingLeft)+c.measureText('甲段。').width+1,r.top+parseFloat(s.paddingTop)+2.5*parseFloat(s.lineHeight),devicePixelRatio]})()"));
+        int[] origin=new int[2];scenario.onActivity(activity->activity.getBridge().getWebView().getLocationOnScreen(origin));
+        float x=origin[0]+(float)(point.getDouble(0)*point.getDouble(2)),y=origin[1]+(float)(point.getDouble(1)*point.getDouble(2));
+        long now=SystemClock.uptimeMillis();Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();
+        MotionEvent down=MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0),up=MotionEvent.obtain(now,now+70,MotionEvent.ACTION_UP,x,y,0);
+        instrumentation.sendPointerSync(down);instrumentation.sendPointerSync(up);down.recycle();up.recycle();
+    }
+    @Test public void offlineVisualSourceHeadingCursorUndoAndImport() throws Exception {
+        Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();File input=new File(context.getCacheDir(),"visual-source.txt");
+        Files.write(input.toPath(),"雨夜\n\n甲段。乙段。\n\n灯火\n\n丙段。丁段。".getBytes(StandardCharsets.UTF_8));
+        Uri uri=FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",input);Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();
+        Instrumentation.ActivityMonitor monitor=new Instrumentation.ActivityMonitor(){@Override public Instrumentation.ActivityResult onStartActivity(Intent intent){if(Intent.ACTION_GET_CONTENT.equals(intent.getAction())||Intent.ACTION_OPEN_DOCUMENT.equals(intent.getAction()))return new Instrumentation.ActivityResult(Activity.RESULT_OK,new Intent().setData(uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));return null;}};
+        instrumentation.addMonitor(monitor);
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            until(scenario,"!!document.querySelector('main')");js(scenario,"location.hash='/studio';true");until(scenario,"!!document.querySelector('#document')");startNewDraft(scenario);
+            tapFileInput(scenario,"#document");until(scenario,"!!document.querySelector('[data-visual-source=\"0\"]')");js(scenario,"document.querySelector('[data-visual-source=\"0\"]').click();true");
+            until(scenario,"!!document.querySelector('#visual-mark-heading')");js(scenario,"document.querySelector('#visual-mark-heading').click();true");until(scenario,"document.querySelector('#visual-preview-status').textContent.includes('1 个标题') && !document.querySelector('#visual-mark-heading').disabled");
+            js(scenario,"document.querySelector('#visual-find').value='灯火';document.querySelector('#visual-find-next').click();document.querySelector('#visual-mark-heading').click();true");
+            until(scenario,"document.querySelector('#visual-preview-status').textContent.includes('2 章') && !document.querySelector('#visual-mark-heading').disabled");
+            tapSourceInsideFirstBody(scenario);
+            until(scenario,"document.querySelector('#visual-source-text').selectionStart===7 && document.querySelector('#visual-cursor-status').textContent.includes('第 7 字符')");
+            js(scenario,"document.querySelector('#visual-mark-break').click();true");until(scenario,"document.querySelector('#visual-preview-status').textContent.includes('3 章') && !document.querySelector('#visual-undo').disabled");
+            js(scenario,"document.querySelector('#visual-undo').click();true");until(scenario,"document.querySelector('#visual-preview-status').textContent.includes('2 章') && !document.querySelector('#visual-mark-break').disabled");
+            js(scenario,"document.querySelector('#visual-mark-break').click();true");until(scenario,"document.querySelector('#visual-preview-status').textContent.includes('3 章') && !document.querySelector('#visual-adopt').disabled");
+            js(scenario,"document.querySelector('#visual-adopt').click();document.querySelector('#apply-import').click();true");until(scenario,"document.querySelectorAll('.editor-toc button').length===3 && !document.querySelector('dialog[open]')");
+            assertEquals("\"甲段。\"",js(scenario,"document.querySelector('#chapter-body').value"));
+            scenario.recreate();until(scenario,"!!document.querySelector('main')");js(scenario,"location.hash='/studio';true");until(scenario,"document.querySelectorAll('.editor-toc button').length===3");
+            js(scenario,"document.querySelector('[data-chapter=\"1\"]').click();true");assertEquals("\"乙段。\"",js(scenario,"document.querySelector('#chapter-body').value"));
+        }finally{instrumentation.removeMonitor(monitor);}
+    }
+
 }
