@@ -1,4 +1,4 @@
-# 文序开发者指南
+﻿# 文序开发者指南
 
 本文面向接手维护、扩展分章算法、开发阅读体验或构建安卓应用的开发者。以 **应用 v2.4.0、结构引擎 v3.1.0** 的实现为基准；依赖版本以 `package-lock.json` 为准，测试数量以实际输出为准。
 
@@ -283,7 +283,7 @@ node scripts/validate-books.mjs
 npm run build
 ```
 
-定向回归可以执行 `node --test tests/visual-source.test.js`、`node --test tests/chapter-edit.test.js` 等。v2.4.0 的 Node 套件为 153 项，覆盖分章、长篇、批量顺序、编辑、阅读、存储、站点杂讯、规律标题、智能分章、大模型请求与风格设置；IndexedDB 测试使用 `fake-indexeddb`，不能代替真实浏览器和安卓文件系统验证。大模型用例使用注入的假 `fetch`，不会访问网络。
+定向回归可以执行 `node --test tests/visual-source.test.js`、`node --test tests/chapter-edit.test.js` 等。v2.4.0 的 Node 套件为 155 项，覆盖分章、长篇、批量顺序、编辑、阅读、存储、站点杂讯、规律标题、智能分章、大模型请求与风格设置；IndexedDB 测试使用 `fake-indexeddb`，不能代替真实浏览器和安卓文件系统验证。大模型用例使用注入的假 `fetch`，不会访问网络。
 
 结构算法修改还应执行：
 
