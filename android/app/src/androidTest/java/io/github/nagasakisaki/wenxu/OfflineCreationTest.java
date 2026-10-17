@@ -120,7 +120,7 @@ public class OfflineCreationTest {
         Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
         String prose="雨水落在站台上，他收好信，走向最后一盏亮着的灯。".repeat(8);
         File input=new File(context.getCacheDir(),"chapter-learning.txt");
-        Files.writeString(input.toPath(),"01｜雨夜\n\n"+prose+"\n\n02｜灯火\n\n"+prose+"\n\n03｜来信\n\n"+prose,StandardCharsets.UTF_8);
+        Files.write(input.toPath(),("01｜雨夜\n\n"+prose+"\n\n02｜灯火\n\n"+prose+"\n\n03｜来信\n\n"+prose).getBytes(StandardCharsets.UTF_8));
         Uri uri=FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",input);
         Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();
         Instrumentation.ActivityMonitor monitor=new Instrumentation.ActivityMonitor(){
@@ -140,9 +140,9 @@ public class OfflineCreationTest {
             until(scenario,"!!document.querySelector('#apply-import') && document.querySelector('#dialog h2').textContent.includes('3 章')");
             assertEquals("true",js(scenario,"document.querySelector('#dialog').textContent.includes('原文覆盖核对通过')"));
             js(scenario,"document.querySelector('#apply-import').click();true");until(scenario,"document.querySelectorAll('.editor-toc button').length===3 && !document.querySelector('dialog[open]')");
-            File manifest=new File(context.getFilesDir(),"drafts/index.json");JSONObject index=new JSONObject(Files.readString(manifest.toPath(),StandardCharsets.UTF_8));
+            File manifest=new File(context.getFilesDir(),"drafts/index.json");JSONObject index=new JSONObject(new String(Files.readAllBytes(manifest.toPath()),StandardCharsets.UTF_8));
             String snapshot=index.getJSONObject("entries").getJSONObject(index.getString("current")).getString("file");
-            JSONObject saved=new JSONObject(Files.readString(new File(context.getFilesDir(),snapshot).toPath(),StandardCharsets.UTF_8));
+            JSONObject saved=new JSONObject(new String(Files.readAllBytes(new File(context.getFilesDir(),snapshot).toPath()),StandardCharsets.UTF_8));
             assertTrue(saved.getJSONArray("chapterProfiles").length()>0);
             assertEquals("wenxu-heading-profile-v1",saved.getJSONArray("chapterProfiles").getJSONObject(0).getString("format"));
             scenario.recreate();until(scenario,"!!document.querySelector('main')");js(scenario,"location.hash='/studio';true");until(scenario,"!!document.querySelector('#document')");
