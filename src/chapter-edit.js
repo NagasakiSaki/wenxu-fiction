@@ -9,7 +9,7 @@ export function numberedTitle(title){
  const raw=m[2],number=chineseNumber(raw);if(!Number.isInteger(number))return null;
  return {number,family:cn?'cn:'+m[4]:'en:'+m[1].trim().toLowerCase().replace('.',''),format:n=>{let value=/[零〇一二两三四五六七八九十百千万]/.test(raw)?chinese(n):String(n).padStart(raw.length,'0');if(/[０-９]/.test(raw))value=value.replace(/\d/g,d=>String.fromCharCode(d.charCodeAt(0)+0xfee0));return m[1]+value+(cn?m[3]+m[4]:'');},suffix:title.slice(m[0].length)};
 }
-function cleanSource(chapter,changes){const {sourceStartLine,sourceEndLine,...rest}=chapter;return refreshSections({...rest,...changes});}
+function cleanSource(chapter,changes){const {sourceStartLine,sourceEndLine,pendingBreakpoints,...rest}=chapter;return refreshSections({...rest,...changes});}
 function checked(chapters){if(chapters.length>1000)throw Error('作品最多1000章，请先合并或减少章节');if(chapters.some(c=>c.title.length>100))throw Error('顺延后有章节标题超过100字，请取消顺延或缩短章名');if(chapters.reduce((n,c)=>n+c.body.length,0)>MAX_BOOK_CHARACTERS)throw Error('调整后超过200万字符上限');return chapters;}
 function shiftFollowing(chapters,start,basis,delta,volume){let stop=false;return chapters.map((chapter,index)=>{if(index<start||stop)return chapter;if((chapter.volume||'')!==(volume||'')){stop=true;return chapter;}if(/^第\s*[零〇一二两三四五六七八九十百千万\d０-９]+\s*[卷部]/.test(chapter.title)){stop=true;return chapter;}const number=numberedTitle(chapter.title);if(!number||number.family!==basis.family)return chapter;if(number.number<=basis.number){stop=true;return chapter;}return {...chapter,title:number.format(number.number+delta)+number.suffix};});}
 export function splitChapter(chapters,index,offset,{title,renumber=true}={}){
