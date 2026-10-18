@@ -35,9 +35,8 @@ export function bindBreakpointView(editor){
   editor.scrollIntoView({block:'center'});
   editor.dispatchEvent(new Event('select'));
  }
- // 输入事件可能连发（输入法、快捷键），合并到下一帧只重建一次镜像。
- let frame=0;const schedule=()=>{if(frame)return;const run=()=>{frame=0;update(marks);};frame=typeof requestAnimationFrame==='function'?requestAnimationFrame(run):setTimeout(run,16);};
- editor.addEventListener('scroll',sync);editor.addEventListener('input',schedule);
+ // The controller batches input rendering after migrating marker positions.
+ editor.addEventListener('scroll',sync);
  const observer=new ResizeObserver(size);observer.observe(editor);
  // Rebinding replaces the editor; stop observing detached nodes after that render.
  const removal=new MutationObserver(()=>{if(!editor.isConnected){observer.disconnect();removal.disconnect();}});

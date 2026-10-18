@@ -1,3 +1,4 @@
+import {migrateBreakpoints} from './breakpoint-migration.js';
 import {bindBreakpointView} from './chapter-breakpoint-view.js';
 import {splitChapterAtPoints} from './chapter-edit.js';
 import {suggestBreaks} from './break-suggestions.js';
@@ -27,7 +28,19 @@ export function bindBatchChapters({editor,getDraft,getSelected,modal,esc,toast,s
  };
  ['select','click','keyup'].forEach(type=>editor.addEventListener(type,cursorStatus));
  markButton.onclick=()=>{const offset=editor.selectionStart;if(offset<=0||offset>=editor.value.length)return toast('请在正文内部放置光标');if(/[\uD800-\uDBFF]/.test(editor.value[offset-1])&&/[\uDC00-\uDFFF]/.test(editor.value[offset]))return toast('断点不能位于一个字符内部');if(marks.includes(offset))return remove(offset);if(marks.length>=999)return toast('每章最多标记999个断点');marks.push(offset);marks.sort((a,b)=>a-b);persist();status();toast(`已标记第 ${offset} 字符处，可继续标记其他位置`);};
- editor.addEventListener('input',()=>{if(marks.length){marks=[];persist();status();toast('正文已修改，旧断点已清除，请重新标记');}});
+ let statusFrame=0;
+ function scheduleStatus(){
+  if(typeof requestAnimationFrame!=='function')return status();
+  if(statusFrame)return;
+  statusFrame=requestAnimationFrame(()=>{statusFrame=0;if(editor.isConnected)status();});
+ }
+ let previousBody=editor.value,editHint=null;
+ editor.addEventListener('beforeinput',event=>{editHint={start:editor.selectionStart,end:editor.selectionEnd,inputType:event.inputType};});
+ editor.addEventListener('input',()=>{
+  const before=previousBody;previousBody=editor.value;
+  if(marks.length){const migration=migrateBreakpoints(before,editor.value,marks,editHint);marks=migration.points;persist();scheduleStatus();if(migration.removed)toast(`本次修改影响了 ${migration.removed} 个断点，已移除；其余断点已保留`);}
+  editHint=null;
+ });
  function open(recommend=false){const state=snapshot(),body=state.chapters[state.index].body;let points=marks.map(offset=>({offset,type:'手动'})),selected=new Set(points.map(p=>p.offset)),target=3000,warning='';
   modal(`<span class="eyebrow">BATCH CHAPTER WORKSHOP</span><h2>${recommend?'按目标字数推荐断点':'一次确认多个分章断点'}</h2><p>所有断点都相对于当前章原文；确认后一次拆成连续章节，正文逐字保留。</p>${recommend?'<div class="batch-target"><label>每章目标字符数<input id="break-target" type="number" min="200" max="20000" value="3000"></label><label>推荐方式<select id="break-strategy"><option value="length">篇幅与段落</option><option value="scene">篇幅 + 场景线索</option></select></label><button id="recommend-breaks">生成断点建议</button></div><small>优先段落，其次句末；不理解情节，不强行截断无标点的长句。</small>':''}<label class="split-renumber"><input id="batch-renumber" type="checkbox" checked>顺延后续同类章名编号，保留描述性章名</label><p id="batch-summary" aria-live="polite"></p><div id="batch-breaks" class="batch-breaks"></div><div id="batch-segments" class="batch-segments"></div><p id="batch-error" role="alert"></p><div class="actions"><button id="confirm-batch-chapters" class="primary">确认批量拆章</button><button data-action="close">取消，保留原章</button></div><small>先创建操作前备份，再保存新章节；可撤销或从草稿箱恢复。</small>`);
   let next=null;

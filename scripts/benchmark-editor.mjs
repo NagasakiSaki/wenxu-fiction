@@ -4,6 +4,7 @@ import {writeFileSync} from 'node:fs';
 import {performance} from 'node:perf_hooks';
 import {breakpointMarkup} from '../src/chapter-breakpoint-view.js';
 import {smartSplit} from '../src/smart-split.js';
+import {migrateBreakpoints} from '../src/breakpoint-migration.js';
 
 const round = value => Math.round(value * 100) / 100;
 
@@ -36,6 +37,7 @@ const points = spreadPoints(longBody.length, 999);
 const singleLinePoints = spreadPoints(singleLine.length, 200);
 
 const cases = [
+  measure('近2,000,000字符 / 999断点 / 首部插入迁移', () => JSON.stringify(migrateBreakpoints(longBody,'新'+longBody,points,{start:0,end:0,inputType:'insertText'}))),
   measure('2,000,000 字符 / 999 断点', () => breakpointMarkup(longBody, points)),
   measure('200,000 字符 / 0 断点（仅转义）', () => breakpointMarkup(mediumBody, [])),
   measure('100,000 字符长单行 / 200 断点', () => breakpointMarkup(singleLine, singleLinePoints), {repeat: 3})

@@ -1,0 +1,29 @@
+.studio-disclosure{min-width:0;font-size:12px}
+.studio-disclosure>summary{cursor:pointer;color:var(--green);padding:10px 2px;line-height:1.6;min-height:40px}
+.studio-disclosure>summary:hover{text-decoration:underline;text-underline-offset:4px}
+.studio-disclosure>summary:focus-visible{outline:3px solid #96b46c;outline-offset:2px}
+.studio-disclosure[open]>summary{margin-bottom:8px}
+.studio-option-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.draft-launcher>div:last-child{align-items:center;flex-wrap:wrap}
+.import-advanced{flex:1 1 240px}
+.import-advanced .studio-option-row{padding:12px 0}
+.import-advanced .import-mode{display:flex;align-items:center;gap:8px}
+.work-info{border-bottom:1px solid var(--line);padding-bottom:12px}
+.work-info>summary{font-family:'Noto Serif SC',SimSun,serif;font-size:18px;color:var(--ink)}
+.work-info[open]{padding-bottom:20px}
+.chapter-advanced{border-top:1px solid var(--line);margin-bottom:10px}
+.smart-advanced{margin:14px 0}
+.smart-advanced .smart-options{margin:0 0 12px}
+.smart-split-actions>.studio-disclosure{max-width:320px}
+.smart-split-actions .llm-state{display:block;margin-top:8px;text-align:left}
+@media(max-width:600px){
+ .draft-launcher>div:last-child>.studio-disclosure{flex-basis:100%}
+ .studio-option-row>button{min-height:42px}
+ .import-advanced{flex-basis:100%}
+ .studio-option-row .file-button,.import-advanced .import-mode{width:100%}
+ .studio-option-row select{max-width:100%}
+ .smart-split-panel{padding:18px;gap:12px}
+ .smart-split-actions{width:100%}
+ .smart-split-actions>.primary{flex:1}
+ .chapter-split-tools>div:nth-child(2)>button{flex:1 1 40%}
+}

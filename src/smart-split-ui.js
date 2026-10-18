@@ -18,13 +18,12 @@ export function smartSplitMarkup({chapters = [], characters = 0, source = null} 
   return `<section class="smart-split-panel" id="smart-split-panel">
   <div class="smart-split-intro">
     <strong>一键智能分章</strong>
-    <p>贴吧、转载站直接复制来的长文，先过滤楼层、广告与翻页，再按反复出现的标题结构整篇分章。默认完全离线，正文逐字保留。</p>
+    <p>整篇整理为章节，先预览、再校对，满意后保存。默认在本机处理。</p>
     <small>当前草稿 ${chapters.length} 章 · ${chars(characters)} 字 · 识别只提出标题行，不改写文字。${source ? ` · 已存原文快照 ${chars(source.characters)} 字（仅本机）` : ''}</small>
   </div>
   <div class="smart-split-actions">
     <button class="primary" id="smart-split-open">一键分章</button>
-    <button id="llm-settings-open">大模型设置</button>
-    <span class="llm-state" id="llm-state">${llmStatusText(llm)}</span>
+    <details class="studio-disclosure"><summary>大模型辅助（可选）</summary><button id="llm-settings-open">大模型设置</button><span class="llm-state" id="llm-state">${llmStatusText(llm)}</span></details>
   </div>
 </section>`;
 }
@@ -139,13 +138,13 @@ function openSmartSplit({getDraft, commit, modal, esc, toast}) {
   <p>整篇文本会先过滤站点杂讯，再识别标题结构并重新切分；正文逐字来自原文，应用前自动备份。</p>
   <label>分章素材<select id="smart-source"><option value="draft">当前草稿全文（${chars(fullText.length)} 字）</option>${storedOption}<option value="paste">粘贴新文本</option></select></label>
   <label id="smart-paste-wrap" hidden>粘贴文本<textarea id="smart-paste" rows="7" placeholder="把从贴吧 / 网页复制来的正文粘贴到这里……" spellcheck="false"></textarea></label>
-  <fieldset class="smart-options">
+  <details class="studio-disclosure smart-advanced"><summary>调整分章选项 · 默认离线</summary><fieldset class="smart-options">
     <label><input type="checkbox" id="smart-clean" checked> 过滤站点杂讯（楼层、广告、翻页、时间、客户端签名）</label>
     <label><input type="checkbox" id="smart-merge" checked> 合并明显过短的碎章，少于 <input id="smart-min" type="number" min="100" max="5000" step="50" value="400"> 字</label>
     <label><input type="checkbox" id="smart-breaks"> 为超过 4500 字的章节生成断点建议（不直接拆分）</label>
     <label><input type="checkbox" id="smart-llm"> 使用大模型识别标题（需联网，片段会发送给 ${esc(describeLlmConfig(llmConfig(llm))) }）</label>
     <label><input type="checkbox" id="smart-candidates" checked> 只发送候选短行（更省、正文几乎不出本机）</label>
-  </fieldset>
+  </fieldset></details>
   <p class="smart-status" id="smart-status" role="status">离线规则在本机运行，不会上传正文。</p>
   <div class="actions"><button class="primary" id="smart-run">开始分析</button><button id="smart-cancel" hidden>取消请求</button><button data-action="close">关闭</button></div>
   <div id="smart-preview"></div></div>`);

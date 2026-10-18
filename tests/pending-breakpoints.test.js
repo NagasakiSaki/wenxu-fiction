@@ -10,20 +10,21 @@ import {localReadingCopy} from '../src/local-books-core.js';
 
 const work=()=>({draftKey:'pending-test',id:'pending-book',title:'断点回归',author:'作者',category:'奇幻',intro:'',status:'连载中',chapters:[{title:'第一章',body:'甲甲。乙乙。丙丙。'},{title:'第二章',body:'丁丁。戊戊。己己。'}]});
 
-test('marked breaks survive editor rebinding, stay chapter-specific and clear only on body edits',()=>{
+test('marked breaks survive editor rebinding, stay chapter-specific and migrate through body edits',()=>{
  const previous=globalThis.document,draft=work();let selected=0,saves=0;
  function bind(){
   const controls=new Map(),listeners={};
   globalThis.document={querySelector:selector=>{if(!controls.has(selector))controls.set(selector,{});return controls.get(selector);}};
   const editor={value:draft.chapters[selected].body,selectionStart:3,addEventListener:(type,fn)=>{listeners[type]=fn;}};
   bindBatchChapters({editor,getDraft:()=>draft,getSelected:()=>selected,onChange:()=>saves++,toast:()=>{}});
-  return {cancel:offset=>controls.get('#chapter-breakpoint-list').onclick({target:{closest:()=>({hasAttribute:()=>offset===null,dataset:{breakRemove:String(offset)}})}}),mark:()=>controls.get('#mark-chapter-point').onclick(),count:()=>controls.get('#batch-chapter-split').textContent,input:()=>listeners.input()};
+  return {cancel:offset=>controls.get('#chapter-breakpoint-list').onclick({target:{closest:()=>({hasAttribute:()=>offset===null,dataset:{breakRemove:String(offset)}})}}),mark:()=>controls.get('#mark-chapter-point').onclick(),count:()=>controls.get('#batch-chapter-split').textContent,edit:value=>{editor.value=value;listeners.input();draft.chapters[selected].body=value;}};
  }
  try{
   bind().mark();selected=1;const second=bind();assert.match(second.count(),/0 个断点/);second.mark();
   selected=0;const first=bind();assert.match(first.count(),/1 个断点/);assert.equal(saves,2);
-  first.input();assert.match(first.count(),/0 个断点/);assert.equal(draft.chapters[0].pendingBreakpoints,undefined);
-  selected=1;const remaining=bind();assert.match(remaining.count(),/1 个断点/);assert.equal(saves,3);remaining.mark();assert.match(remaining.count(),/0 个断点/);remaining.mark();remaining.cancel(3);assert.equal(draft.chapters[1].pendingBreakpoints,undefined);remaining.mark();remaining.cancel(null);assert.equal(draft.chapters[1].pendingBreakpoints,undefined);
+  first.edit('新'+draft.chapters[0].body);assert.match(first.count(),/1 个断点/);assert.deepEqual(draft.chapters[0].pendingBreakpoints,[4]);
+  first.edit('替换全文');assert.match(first.count(),/0 个断点/);assert.equal(draft.chapters[0].pendingBreakpoints,undefined);
+  selected=1;const remaining=bind();assert.match(remaining.count(),/1 个断点/);assert.equal(saves,4);remaining.mark();assert.match(remaining.count(),/0 个断点/);remaining.mark();remaining.cancel(3);assert.equal(draft.chapters[1].pendingBreakpoints,undefined);remaining.mark();remaining.cancel(null);assert.equal(draft.chapters[1].pendingBreakpoints,undefined);
  }finally{if(previous===undefined)delete globalThis.document;else globalThis.document=previous;}
 });
 
