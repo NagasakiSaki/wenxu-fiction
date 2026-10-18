@@ -41,7 +41,10 @@ public class OfflineCreationTest {
         String target=JSONObject.quote(selector);
         // File choosers require an actual user gesture; synthetic JS .click()
         // is deliberately blocked by WebView and would not test the app flow.
-        js(scenario,"document.querySelector("+target+").scrollIntoView({block:'center'});true");
+        // Secondary import actions live in disclosures. Follow their visible path
+        // before injecting the real gesture required by Android's file chooser.
+        js(scenario,"(()=>{const el=document.querySelector("+target+");const parents=[];for(let p=el.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')parents.unshift(p);for(const p of parents)if(!p.open)p.querySelector('summary').click();el.scrollIntoView({block:'center'});return true})()");
+        until(scenario,"(()=>{const r=document.querySelector("+target+").getBoundingClientRect();return r.width>0&&r.height>0})()");
         JSONArray point=new JSONArray(js(scenario,"(()=>{const r=document.querySelector("+target+").getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2,devicePixelRatio]})()"));
         int[] origin=new int[2];scenario.onActivity(activity->activity.getBridge().getWebView().getLocationOnScreen(origin));
         float x=origin[0]+(float)(point.getDouble(0)*point.getDouble(2)),y=origin[1]+(float)(point.getDouble(1)*point.getDouble(2));
