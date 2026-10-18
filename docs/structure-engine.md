@@ -1,6 +1,8 @@
-# 文序结构引擎 3.1
+# 文序结构引擎 3.2
 
 维护者：NagasakiSaki。实现见 `src/chapter-analysis.js`、`src/structure-intelligence.js`、`src/heading-profile.js`、`src/work-health.js`、`src/chapter-worker.js` 和 `src/import-review.js`。
+
+v3.2 新增[论坛连载整理](forum-serial.md)：帖子与角色联合证据、元信息归档、分篇与人工校对坐标贯通。
 
 ## 设计与本次贡献
 

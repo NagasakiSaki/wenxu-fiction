@@ -139,6 +139,7 @@ function openSmartSplit({getDraft, commit, modal, esc, toast}) {
   <label>分章素材<select id="smart-source"><option value="draft">当前草稿全文（${chars(fullText.length)} 字）</option>${storedOption}<option value="paste">粘贴新文本</option></select></label>
   <label id="smart-paste-wrap" hidden>粘贴文本<textarea id="smart-paste" rows="7" placeholder="把从贴吧 / 网页复制来的正文粘贴到这里……" spellcheck="false"></textarea></label>
   <details class="studio-disclosure smart-advanced"><summary>调整分章选项 · 默认离线</summary><fieldset class="smart-options">
+    <label><input type="checkbox" id="smart-serial" checked> 自动识别论坛帖子、章末与分篇（保留骰子、选项和角色台词）</label>
     <label><input type="checkbox" id="smart-clean" checked> 过滤站点杂讯（楼层、广告、翻页、时间、客户端签名）</label>
     <label><input type="checkbox" id="smart-merge" checked> 合并明显过短的碎章，少于 <input id="smart-min" type="number" min="100" max="5000" step="50" value="400"> 字</label>
     <label><input type="checkbox" id="smart-breaks"> 为超过 4500 字的章节生成断点建议（不直接拆分）</label>
@@ -184,6 +185,7 @@ function openSmartSplit({getDraft, commit, modal, esc, toast}) {
       if (!material.trim()) throw Error('请先粘贴或准备正文');
       options = {
         cleanNoise: $('#smart-clean').checked,
+        forumSerial: $('#smart-serial').checked,
         mergeShort: $('#smart-merge').checked,
         minChars: Math.max(100, Math.min(5000, Number($('#smart-min').value) || 400)),
         suggestLongChapterBreaks: $('#smart-breaks').checked
@@ -191,7 +193,7 @@ function openSmartSplit({getDraft, commit, modal, esc, toast}) {
       let llmLines;
       if ($('#smart-llm').checked) {
         if (!(hasLlmKey(llm) || llm.provider === 'ollama' || llm.provider === 'lmstudio')) throw Error('尚未配置大模型密钥，请先打开“大模型设置”');
-        const prepared = prepareSource(material, {cleanNoise: options.cleanNoise});
+        const prepared = prepareSource(material, {cleanNoise: options.cleanNoise,forumSerial:options.forumSerial});
         controller = new AbortController();
         $('#smart-cancel').hidden = false;
         status('正在请求大模型识别标题…');
@@ -247,7 +249,8 @@ function renderPreview(result, source, {esc, status, toast, commit, getDraft, cl
     ${result.forum ? `<p class="smart-hint">识别结构：${esc(result.forum.summary)}。${result.forum.confidence === 'low' ? '证据较弱，请逐章核对。' : ''}</p>` : ''}
     <p class="smart-hint ${safe ? '' : 'smart-danger'}">${safe ? '正文覆盖核对通过：过滤与切分没有删改故事文字。' : '正文覆盖核对未通过，请勿直接应用，先导出原文备份。'}</p>
     ${result.metrics.invisibleCharacters ? `<p class="smart-hint">已清理 ${result.metrics.invisibleCharacters} 个零宽字符、不换行空格或软连字符。</p>` : ''}
-    <ol class="smart-chapter-list">${listed.map((chapter, index) => `<li><b>${String(index + 1).padStart(2, '0')}</b><span>${esc(chapter.title)}</span><small>${chars(chapter.body.length)} 字${chapter.pendingBreakpoints?.length ? ` · ${chapter.pendingBreakpoints.length} 个断点建议` : ''}</small></li>`).join('')}</ol>
+    ${result.serial?.recognized?`<details class="serial-role-review"><summary>论坛结构：${result.serial.posts.length} 个帖子 · ${result.serial.roles.filter(r=>r.needsReview||r.kind==='repeat').length} 处建议核对</summary><p class="smart-hint">帖子不直接作为章节。章末、作者说明和重复标题保留在正文；楼尾标题可能是下话预告，请结合上下文确认。</p><ul class="smart-diagnostic-list">${result.serial.roles.filter(r=>r.kind!=='start'||r.needsReview).map(r=>`<li><button type="button" data-serial-review-line="${r.line}">查看导入原文第 ${result.serial.sourceLines[r.line-1]} 行</button> ${esc(r.message)}</li>`).join('')}</ul></details>`:''}
+    <ol class="smart-chapter-list">${listed.map((chapter, index) => `<li><b>${String(index + 1).padStart(2, '0')}</b><span>${chapter.volume?`<small>${esc(chapter.volume)}</small>`:''}${esc(chapter.title)}</span><small>${chars(chapter.body.length)} 字${chapter.pendingBreakpoints?.length ? ` · ${chapter.pendingBreakpoints.length} 个断点建议` : ''}</small></li>`).join('')}</ol>
     ${chapters.length > listed.length ? `<p class="smart-hint">其余 ${chapters.length - listed.length} 章未逐条列出，应用后可在左侧目录查看。</p>` : ''}
     <details ${noiseExamples.length ? '' : 'hidden'}><summary>站点杂讯：${result.noise.entries.length} 行 · ${chars(result.noise.removedCharacters)} 字</summary>
       <ul class="smart-noise-list">${noiseExamples.map(entry => `<li><span>第 ${entry.line} 行 · ${esc(entry.label)}</span><code>${esc(entry.text)}</code></li>`).join('')}</ul>
@@ -271,9 +274,10 @@ function renderPreview(result, source, {esc, status, toast, commit, getDraft, cl
 
   const context = {esc, status, toast, commit, getDraft, close, rerun};
   $('#smart-rerun').onclick = () => $('#smart-run').click();
-  $('#smart-boundary').onclick = () => {
+  const openReview=(focusLine)=>{
     bindBoundaryReview({
       result,
+      focusLine,
       host: preview,
       esc,
       toast,
@@ -285,6 +289,8 @@ function renderPreview(result, source, {esc, status, toast, commit, getDraft, cl
       }
     });
   };
+  $('#smart-boundary').onclick=()=>openReview();
+  preview.querySelectorAll('[data-serial-review-line]').forEach(button=>button.onclick=()=>openReview(Number(button.dataset.serialReviewLine)));
   $('#smart-apply').onclick = async event => {
     const button = event.currentTarget;
     button.disabled = true;

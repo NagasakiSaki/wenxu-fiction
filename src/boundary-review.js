@@ -1,3 +1,4 @@
+import {withSerialVolumes} from './forum-serial.js';
 // 分界校对：把一键分章的结果放回清洗后的原文，让作者逐行增删分界。
 // 模型只做窗口与校验，真正的章节切分仍由结构引擎完成并核对覆盖。
 import {analyseChapters} from './chapter-analysis.js';
@@ -49,14 +50,14 @@ export function setHeading(text, headings, line, enabled) {
 }
 
 /** 用当前分界重新切分并核对覆盖。 */
-export function buildReview(text, headings, {fallbackTitle = '序言'} = {}) {
+export function buildReview(text, headings, {fallbackTitle = '序言',serial} = {}) {
   if (!headings.length) throw Error('请至少保留一个分界，或直接取消校对');
   if (headings.length > 1000) throw Error('分界超过1000个，请合并章节');
-  const result = analyseChapters(text, {fallbackTitle, boundaryLines: headings});
+  const result = analyseChapters(text, {fallbackTitle, boundaryLines: headings,archiveLines:serial?.arcs?.filter(a=>!headings.includes(a.line)).map(a=>a.line)||[]});
   return {
-    chapters: result.chapters,
+    chapters: withSerialVolumes(result.chapters,serial),
     integrity: result.integrity,
-    diagnostics: result.diagnostics.filter(item => item.code !== 'no-boundary'),
+    diagnostics: result.diagnostics.filter(item => item.code !== 'no-boundary'&&!(serial?.roles?.some(r=>r.kind==='start'&&r.line===item.line&&r.volume&&r.number<=1)&&['sequence-gap','repeated-number'].includes(item.code))),
     boundaryLines: result.boundaryLines
   };
 }

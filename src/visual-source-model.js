@@ -1,4 +1,4 @@
-import {analyseChapters} from './chapter-analysis.js';
+import {analyseImportedChapters as analyseChapters} from './import-analysis.js';
 import {splitChapterAtPoints} from './chapter-edit.js';
 import {auditWork} from './work-health.js';
 export const normalizeSource=text=>String(text).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');

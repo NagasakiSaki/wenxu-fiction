@@ -1,5 +1,5 @@
 import {analyseVisualPlan} from './visual-source-model.js';
-import {analyseChapters} from './chapter-analysis.js';
+import {analyseImportedChapters as analyseChapters} from './import-analysis.js';
 export async function runChapterAnalysis(text,options={}){
  if(typeof Worker==='undefined'){await new Promise(resolve=>setTimeout(resolve,0));return options.visualPlan?analyseVisualPlan(text,options):analyseChapters(text,options);}
  return new Promise((resolve,reject)=>{

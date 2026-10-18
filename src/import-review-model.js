@@ -1,6 +1,6 @@
 import {auditWork} from './work-health.js';
 import {MAX_BOOK_CHARACTERS} from './limits.js';
-export const ENGINE_VERSION='3.1.0';
+export const ENGINE_VERSION='3.2.0';
 export function replaceSourceAnalysis(result,index,analysis){
  if(!result.sources[index])throw Error('文档已不存在');if(!analysis.chapters.length)throw Error('校正结果没有可阅读正文，请保留至少一个正文段落');
  const sources=result.sources.map((source,i)=>i===index?{...source,analysis,method:analysis.method,frontMatter:analysis.frontMatter,subtitle:analysis.subtitle}: {...source});

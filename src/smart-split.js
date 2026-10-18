@@ -1,3 +1,4 @@
+import {inspectSerialPosts,serialNoise,serialPlan,withSerialVolumes} from './forum-serial.js';
 // 一键智能分章：把整篇原文交给同一套可解释规则处理。
 // 顺序是「过滤站点杂讯 → 识别标题（离线规律 / 大模型候选）→ 结构引擎验证覆盖 → 生成章节」，
 // 大模型与规律识别都只提出分界行，任何正文都由引擎按原文字符还原，避免改写作者的文字。
@@ -18,16 +19,19 @@ export function normalizeText(input) {
  * 统一换行并（可选）过滤站点杂讯。界面与大模型行号都基于这份清洗结果，
  * 保证“识别出的行号”和“真正切分的行”是同一套坐标。
  */
-export function prepareSource(input, {cleanNoise = true, tidy = true} = {}) {
+export function prepareSource(input, {cleanNoise = true, tidy = true, forumSerial = true} = {}) {
   const raw = normalizeText(input);
   const tidied = tidy ? tidyText(raw) : {text: raw, changed: false, removed: {zeroWidth: 0, noBreakSpace: 0, softHyphen: 0}};
   const text = tidied.text;
   const lines = text.split('\n');
+  const inspection=forumSerial?inspectSerialPosts(lines,raw.split('\n')):{recognized:false};
   const noise = cleanNoise
-    ? detectNoise(lines)
+    ? inspection.recognized?serialNoise(lines,inspection):detectNoise(lines)
     : {remove: new Set(), entries: [], suspects: [], counts: {}, removedCharacters: 0};
   const cleanedLines = cleanNoise ? cleanLines(lines, noise) : lines;
-  return {text, lines, cleanedLines, cleanedText: cleanedLines.join('\n'), noise, tidy: tidied};
+  const sourceLines=lines.flatMap((_,i)=>!noise.remove.has(i)?[i+1]:[]);
+  const serial=inspection.recognized?{recognized:true,posts:inspection.posts,sourceLines,...serialPlan(cleanedLines,inspection.posts,sourceLines)}:null;
+  return {text, lines, cleanedLines, cleanedText: cleanedLines.join('\n'), noise, tidy: tidied,serial};
 }
 
 /** 草稿各章正文拼成的整篇文本；与断点偏移使用同一套规则。 */
@@ -163,6 +167,7 @@ function validateBoundaryLines(lines, sourceLines) {
 export function smartSplit(input, {
   cleanNoise = true,
   tidy = true,
+  forumSerial = true,
   mergeShort = true,
   minChars = 400,
   suggestLongChapterBreaks = false,
@@ -173,7 +178,7 @@ export function smartSplit(input, {
   llmLines,
   fallbackTitle = '序言'
 } = {}) {
-  const {text, lines, cleanedLines: cleaned, cleanedText, noise, tidy: tidied} = prepareSource(input, {cleanNoise, tidy});
+  const {text, lines, cleanedLines: cleaned, cleanedText, noise, tidy: tidied,serial} = prepareSource(input, {cleanNoise, tidy,forumSerial});
   if (!compact(text)) throw Error('没有可分析的正文');
   if (text.length > MAX_BOOK_CHARACTERS) throw Error('单部作品最多 200 万字符，请拆分文件后分章');
 
@@ -181,17 +186,24 @@ export function smartSplit(input, {
 
   let method = '';
   let forum = null;
-  let analysis = analyseChapters(cleanedText, {fallbackTitle, profile, positiveLines, negativeLines});
-  method = analysis.method;
+  const archiveLines=serial?.arcs.map(a=>a.line)||[];
+  const serialAutomatic=!!serial?.recognized&&!profile&&positiveLines===undefined;
+  let analysis = serialAutomatic?null:analyseChapters(cleanedText, {fallbackTitle, profile, positiveLines, negativeLines,archiveLines});
+  method = analysis?.method||'';
 
   // 大模型候选优先；否则在引擎只得到整篇、或某一章明显吞掉全文时，补充规律标题识别。
   let boundaryLines = null;
-  if (llmLines?.length) {
+  if(serialAutomatic){
+    const excluded=new Set(serial.roles.filter(r=>['ending','commentary','repeat','arc'].includes(r.kind)).map(r=>r.line));
+    boundaryLines=llmLines?.length?validateBoundaryLines(llmLines,cleaned).filter(n=>!excluded.has(n)):serial.headings;
+    analysis=analyseChapters(cleanedText,{fallbackTitle,boundaryLines,archiveLines});
+    method=llmLines?.length?'大模型 / 论坛连载整理':'论坛连载整理';
+  } else if (llmLines?.length) {
     boundaryLines = validateBoundaryLines(llmLines, cleaned);
     method = '大模型分章';
   } else {
     const dominant = analysis.chapters.length <= 1 || (text.length >= 4000 && biggestChapterShare(analysis.chapters) > 0.5);
-    if (dominant) {
+    if (dominant&&!serial?.recognized) {
       forum = detectForumHeadings(cleaned);
       const found = forum.headings.map(heading => heading.line);
       const existing = analysis.boundaryLines || [];
@@ -203,11 +215,11 @@ export function smartSplit(input, {
     }
   }
 
-  if (boundaryLines?.length) {
-    analysis = analyseChapters(cleanedText, {fallbackTitle, profile, positiveLines, negativeLines, boundaryLines});
+  if (boundaryLines?.length&&!serialAutomatic) {
+    analysis = analyseChapters(cleanedText, {fallbackTitle, profile, positiveLines, negativeLines, boundaryLines,archiveLines});
   }
 
-  let chapters = analysis.chapters.map(chapter => ({
+  let chapters = withSerialVolumes(analysis.chapters,serial).map(chapter => ({
     title: chapter.title,
     body: chapter.body,
     ...(chapter.volume ? {volume: chapter.volume} : {}),
@@ -216,7 +228,7 @@ export function smartSplit(input, {
   }));
 
   let mergeReport = {merged: 0, skipped: true};
-  if (mergeShort) {
+  if (mergeShort&&!serial?.recognized) {
     mergeReport = mergeShortChapters(chapters, {minChars});
     chapters = mergeReport.chapters;
   }
@@ -237,12 +249,14 @@ export function smartSplit(input, {
   if (chapters.length > 1000) throw Error('识别出超过1000章，请合并碎章或拆分文件');
   if (totalCharacters > MAX_BOOK_CHARACTERS) throw Error('分章后超过 200 万字符上限');
 
-  const diagnostics = [...analysis.diagnostics, ...orderDiagnostics(chapters)];
+  const resets=new Set((serial?.roles||[]).filter(r=>r.kind==='start'&&r.volume&&r.number<=1).map(r=>r.line));
+  const diagnostics = [...analysis.diagnostics.filter(d=>!(resets.has(d.line)&&['sequence-gap','repeated-number'].includes(d.code))), ...orderDiagnostics(chapters)];
   if (mergeReport.merged) diagnostics.push({code: 'merged-short', level: '提示', message: `已把 ${mergeReport.merged} 个碎章并入前一章；正文未删减。`});
-  if (mergeReport.skipped && mergeShort) diagnostics.push({code: 'merge-skipped', level: '提示', message: '短章超过一半，可能标题结构可疑，未自动合并，请在预览里核对。'});
+  if (mergeReport.skipped && mergeShort&&!serial?.recognized) diagnostics.push({code: 'merge-skipped', level: '提示', message: '短章超过一半，可能标题结构可疑，未自动合并，请在预览里核对。'});
 
   return {
     format: 'wenxu-smart-split-v1',
+    serial,
     chapters,
     cleanedText,
     method,

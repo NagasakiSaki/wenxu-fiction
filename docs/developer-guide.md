@@ -1,6 +1,6 @@
 # 文序开发者指南
 
-本文面向接手维护、扩展分章算法、开发阅读体验或构建安卓应用的开发者。以 **应用 v2.5.1、结构引擎 v3.1.0** 的实现为基准；依赖版本以 `package-lock.json` 为准，测试数量以实际输出为准。
+本文面向接手维护、扩展分章算法、开发阅读体验或构建安卓应用的开发者。以 **应用 v2.6.0、结构引擎 v3.2.0** 的实现为基准；依赖版本以 `package-lock.json` 为准，测试数量以实际输出为准。
 
 文序使用原生 JavaScript ES Modules、Vite、IndexedDB 和 Capacitor。网页与安卓共用创作、分章和阅读代码，平台差异集中在文件访问、存储及生命周期适配层。
 
@@ -349,7 +349,7 @@ cd android
 
 自定义 [`DocumentAccessPlugin.java`](../android/app/src/main/java/io/github/nagasakisaki/wenxu/DocumentAccessPlugin.java) 通过 SAF 提供目录选择与另存为，不依赖整盘存储权限。目录遍历限深 24、最多检查 5000 个节点，并继续执行文件数与体积限制。文件选择取消必须按取消处理，不得提示保存成功。`MainActivity` 负责注册插件和窗口适配。
 
-[`OfflineCreationTest.java`](../android/app/src/androidTest/java/io/github/nagasakisaki/wenxu/OfflineCreationTest.java) 包含 3 项设备测试：离线批量导入与草稿往返、标题示例保存复用、原文点选标题/光标断点/撤销/导入。CI 在 API 35 模拟器上关闭 Wi-Fi 和移动数据后执行；它不代表所有实体设备兼容性。
+[`OfflineCreationTest.java`](../android/app/src/androidTest/java/io/github/nagasakisaki/wenxu/OfflineCreationTest.java) 包含 4 项设备测试：离线批量导入与草稿往返、标题示例保存复用、原文点选标题/光标断点/撤销/导入。CI 在 API 35 模拟器上关闭 Wi-Fi 和移动数据后执行；它不代表所有实体设备兼容性。
 
 测试文件提供器位于 `src/debug/`，不得移入正式构建。文件选择与文本光标相关测试使用真实触摸事件，不能用直接改业务状态替代。Gradle 命令保留 `:app:` 前缀，避免误跑传递库的设备测试。
 
@@ -376,7 +376,7 @@ Fork 或更换部署路径时，需要一起检查 `vite.config.js` 的 `base`�
 
 正式签名使用 Actions Secrets：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`。CI 临时还原 keystore，并向 Gradle 提供 `ANDROID_KEYSTORE_PATH`、`ANDROID_KEYSTORE_PASSWORD`；密钥别名为 `wenxu`。不要把真实密码、密钥或其 Base64 写入文档、命令历史、仓库或日志。
 
-当前应用 ID 为 `io.github.nagasakisaki.wenxu`，版本为 `versionName "2.5.1"` / `versionCode 20501`。覆盖安装更新必须沿用应用 ID 与原签名密钥，并提高 versionCode。普通开发者用 debug 构建验证；独立发行应使用自己的应用身份和签名，不替换维护者正式密钥。
+当前应用 ID 为 `io.github.nagasakisaki.wenxu`，版本为 `versionName "2.6.0"` / `versionCode 20600`。覆盖安装更新必须沿用应用 ID 与原签名密钥，并提高 versionCode。普通开发者用 debug 构建验证；独立发行应使用自己的应用身份和签名，不替换维护者正式密钥。
 
 ### 9.3 维护者发布流程
 
@@ -419,3 +419,8 @@ CI 生成构建 artifacts，不会自动发布 GitHub Release。可用 `gh run l
 `batch-chapter-ui.js` 在模型写入前计算迁移，保存断点后按帧更新列表/高亮；镜像层不再独立响应输入并重复构建。`tests/breakpoint-migration.test.js` 覆盖重复文本、删除方向、输入法组合更新、Emoji与长篇。`npm run benchmark:editor` 增加近200万字符/999断点迁移纯函数耗时；不能视作手机帧率。
 
 `studio-simple.css` 与原生 `details/summary` 实现按需展开。保留原控件ID和事件，不在折叠时删除DOM。作品资料缺失时公开导出会自动展开并聚焦必填字段；专业选项默认值与联网开关不因折叠发生改变。
+
+
+## v2.6.0 补充：论坛连载结构
+
+文件导入经 `analyseImportedChapters` 适配层自动探测明确的论坛帖子结构；原文校对也复用此层。核心新增 `archiveLines` 参数归档元信息而不改变行坐标，一键整理路径则携带清洗前后的 `sourceLines` 映射。两条路径均保留分篇归属与作者人工选择。入口、回退规则、数据保留及合成测试见[论坛连载整理](forum-serial.md)。普通文本保持旧分析流程；不要将论坛专用删除规则用于所有文档。

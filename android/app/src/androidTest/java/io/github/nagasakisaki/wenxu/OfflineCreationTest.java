@@ -155,6 +155,44 @@ public class OfflineCreationTest {
         }finally{instrumentation.removeMonitor(monitor);}
     }
 
+    @Test public void offlineForumSerialReviewArchiveAndReopen() throws Exception {
+        Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+        String[] bodies={
+            "故事说明。\n第0话 纸灯\n甲乙丙丁。\n[rd100=6]\n1-5等待\n6-10出发",
+            "第0话剧情预计在旅途结束后继续\n第1话 海岸\n旅人看见了远处的船。\n第一话 海岸 完\n第二话 回声",
+            "第二话 回声\n旅人读完了手中的信。\n示例作品 入学篇\n第一话 新客\n清晨，有人敲响了门。"
+        };
+        StringBuilder text=new StringBuilder();
+        for(int i=0;i<bodies.length;i++)text.append("#").append(i).append("示例作者 111111\n级别: 学徒威望: 1注册: 25-01-01\n2026-01-01 12:0").append(i).append("\n7\u200B\n\n").append(bodies[i]).append("\n附件\n显示全部附件\n");
+        File input=new File(context.getCacheDir(),"forum-serial.txt");Files.write(input.toPath(),text.toString().getBytes(StandardCharsets.UTF_8));
+        Uri uri=FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",input);
+        Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();
+        Instrumentation.ActivityMonitor monitor=new Instrumentation.ActivityMonitor(){@Override public Instrumentation.ActivityResult onStartActivity(Intent intent){if(Intent.ACTION_GET_CONTENT.equals(intent.getAction())||Intent.ACTION_OPEN_DOCUMENT.equals(intent.getAction()))return new Instrumentation.ActivityResult(Activity.RESULT_OK,new Intent().setData(uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));return null;}};
+        instrumentation.addMonitor(monitor);
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            until(scenario,"!!document.querySelector('main')");js(scenario,"location.hash='/studio';true");until(scenario,"!!document.querySelector('#document')");startNewDraft(scenario);
+            tapFileInput(scenario,"#document");until(scenario,"!!document.querySelector('#apply-import') && document.querySelector('#dialog h2').textContent.includes('5 章')");
+            assertEquals("true",js(scenario,"document.querySelector('#dialog').textContent.includes('3 个帖子') && document.querySelector('#dialog').textContent.includes('原文覆盖核对通过')"));
+            js(scenario,"(()=>{const b=document.querySelector('[data-serial-import-line]');b.closest('details').querySelector('summary').click();b.click();return true})()");
+            until(scenario,"!!document.querySelector('#visual-adopt') && document.querySelector('#visual-preview-status').textContent.includes('5 章')");
+            js(scenario,"(()=>{document.querySelector('#visual-find').value='甲乙丙丁';document.querySelector('#visual-find-next').click();const t=document.querySelector('#visual-source-text'),at=t.selectionStart+2;t.setSelectionRange(at,at);t.dispatchEvent(new Event('select'));document.querySelector('#visual-mark-break').click();return true})()");
+            until(scenario,"document.querySelector('#visual-preview-status').textContent.includes('6 章') && !document.querySelector('#visual-undo').disabled");
+            js(scenario,"document.querySelector('#visual-undo').click();true");
+            until(scenario,"document.querySelector('#visual-preview-status').textContent.includes('5 章') && !document.querySelector('#visual-adopt').disabled");
+            js(scenario,"document.querySelector('#visual-adopt').click();document.querySelector('#apply-import').click();true");
+            until(scenario,"document.querySelectorAll('.editor-toc button').length===5 && !document.querySelector('dialog[open]')");
+            JSONObject index=new JSONObject(new String(Files.readAllBytes(new File(context.getFilesDir(),"drafts/index.json").toPath()),StandardCharsets.UTF_8));
+            String snapshot=index.getJSONObject("entries").getJSONObject(index.getString("current")).getString("file");
+            JSONObject saved=new JSONObject(new String(Files.readAllBytes(new File(context.getFilesDir(),snapshot).toPath()),StandardCharsets.UTF_8));
+            assertEquals("示例作品 入学篇",saved.getJSONArray("chapters").getJSONObject(4).getString("volume"));
+            assertTrue(saved.getJSONObject("importSource").getString("text").contains("111111"));
+            assertTrue(saved.getJSONArray("importNotes").toString().contains("111111"));
+            assertFalse(saved.getJSONArray("chapters").toString().contains("111111"));
+            assertTrue(saved.getJSONArray("chapters").toString().contains("[rd100=6]"));
+            scenario.recreate();until(scenario,"!!document.querySelector('main')");js(scenario,"location.hash='/studio';true");until(scenario,"document.querySelectorAll('.editor-toc button').length===5");
+        }finally{instrumentation.removeMonitor(monitor);}
+    }
+
     private void tapSourceInsideFirstBody(ActivityScenario<MainActivity> scenario) throws Exception {
         js(scenario,"document.querySelector('#visual-source-text').scrollIntoView({block:'center'});true");
         JSONArray point=new JSONArray(js(scenario,"(()=>{const t=document.querySelector('#visual-source-text'),r=t.getBoundingClientRect(),s=getComputedStyle(t),canvas=document.createElement('canvas'),c=canvas.getContext('2d');c.font=s.fontSize+' '+s.fontFamily;return [r.left+parseFloat(s.paddingLeft)+c.measureText('甲段。').width+1,r.top+parseFloat(s.paddingTop)+2.5*parseFloat(s.lineHeight),devicePixelRatio]})()"));
