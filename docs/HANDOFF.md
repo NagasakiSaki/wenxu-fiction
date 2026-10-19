@@ -1,3 +1,7 @@
+# v2.6.1 更新
+
+新增 `manuscript-format.js` 线性空白整理与精确断点偏移映射；`manuscript-format-ui.js` 负责整书预览、陈旧草稿防护、备份后写入。`book-download.js` 白名单导出全书/单章阅读副本。入口均在 main.js；作品详情现有独立 dialog。安卓 saveText 新增可选 mime 参数。参考见 REFERENCES.md。当前结构引擎仍为 3.2.0；无模型、数据库或正文上传变化。
+
 # 文序项目交接
 
 核对日期：**2026-10-18（Asia/Shanghai）**。本文替换上一版交接，覆盖到 v2.5.0 为止的工作。代码基线为本文提交前的 `e497db4`（v2.5.0 发布提交为 `6d58c0d8bde2e68235702a9f6a93905eff0659d3`）；文档提交会在这之后。开始工作前请重新检查 Git 与 Actions，不要把此处状态视为实时信息。

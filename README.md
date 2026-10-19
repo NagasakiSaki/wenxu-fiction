@@ -79,3 +79,9 @@ Node.js 24。运行 `npm ci`、`npm run dev`；构建 `npm run build`；测试 `
 参考 [raikyou/novel-parser](https://github.com/raikyou/novel-parser) 的章节模式与无标题回退、[rockbenben/novel-processor](https://github.com/rockbenben/novel-processor) 的章节识别和重排功能。当前实现为本站独立编写的浏览器端代码，没有复制这些项目源码或引入其后端依赖。
 
 完整参考与依赖列表见 [REFERENCES.md](REFERENCES.md)。技术说明、限制和本地扫描验证命令见 [文档导入技术说明](docs/import-engine.md)。维护者：NagasakiSaki。
+
+### 格式整理与文档下载（v2.6.1）
+
+在工作台章节区点击“一键格式整理”，逐章预览空白变化后应用；系统先建立独立备份。代码和 Markdown 硬换行受保护，不进行自动合段、标点替换或正文改写。断点跟随精确编辑区间迁移；被删除空白内部的断点会在预览中告知。备份可从草稿箱恢复。
+
+作品详情页点击“下载文档”，选择全文/单章与 TXT、Markdown 或文序 JSON。下载当前可读版本，非上传前的原始 DOCX/PDF 附件。JSON 仅包含阅读字段，可导入本地书架；单章使用独立编号以避免覆盖全书。安卓通过系统另存为保存。

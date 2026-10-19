@@ -7,7 +7,7 @@ export async function exportTextFile(filename, text, {mime = 'text/plain'} = {})
   if (new TextEncoder().encode(text).byteLength > MAX_EXPORT_BYTES) throw Error('导出文件超过32MB，请减少附加资料');
   if (isNative()) {
     const {DocumentAccess} = await import('./native-documents.js');
-    const result = await DocumentAccess.saveText({filename: safeName, text});
+    const result = await DocumentAccess.saveText({filename: safeName, text, mime});
     return result.cancelled ? '已取消导出' : '文件已保存到所选位置，可传送到另一台设备';
   }
   const url = URL.createObjectURL(new Blob([text], {type: mime}));

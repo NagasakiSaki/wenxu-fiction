@@ -46,3 +46,7 @@
 以上依赖保留各自许可证及版权说明。PDF.js、Mammoth、Turndown、GFM 插件与 DOMPurify 的许可证随构建产物一起提供于 `pdfjs/licenses/`。其他完整声明见 npm 包目录。参考设计与使用库分别列出，避免将依赖或他人工作误写为本站原创。
 
 Capacitor各运行依赖和Workbox窗口库的许可证随构建产物提供于 `third-party/`。AndroidX等原生依赖保留其包内声明。CI使用 [android-emulator-runner](https://github.com/ReactiveCircus/android-emulator-runner) 和 [Gradle Actions](https://github.com/gradle/actions) 进行构建及模拟器验证，未作为应用运行时服务。
+
+## 格式整理规则参考（v2.6.1）
+
+- [markdownlint 规则说明](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md)：参考 MD012 关于连续空行及代码围栏例外、MD009 关于行尾空白与 Markdown 硬换行的区分。未引入该库、未复制其代码；文序仅实现保守的小说手稿空白整理，并额外迁移本机断点、保存整理前备份。

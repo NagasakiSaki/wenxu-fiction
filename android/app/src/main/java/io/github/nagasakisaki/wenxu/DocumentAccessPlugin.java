@@ -24,7 +24,8 @@ public class DocumentAccessPlugin extends Plugin {
         if (name == null || text == null || text.length() > 32 * 1024 * 1024) { call.reject("文件内容无效或超过32MB字符限制"); return; }
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("application/json");
+        String mime = call.getString("mime", "application/json");
+        intent.setType(("text/plain".equals(mime) || "text/markdown".equals(mime)) ? mime : "application/json");
         intent.putExtra(Intent.EXTRA_TITLE, name);
         startActivityForResult(call, intent, "savedDocument");
     }

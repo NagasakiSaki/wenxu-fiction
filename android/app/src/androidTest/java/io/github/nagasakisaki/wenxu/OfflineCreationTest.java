@@ -226,4 +226,33 @@ public class OfflineCreationTest {
         }finally{instrumentation.removeMonitor(monitor);}
     }
 
+    @Test public void offlineFormatBackupAndPublicTextDownload() throws Exception {
+        Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+        File output=new File(context.getCacheDir(),"public-book-download.txt");
+        Uri uri=FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",output);
+        AtomicReference<String> savedType=new AtomicReference<>();
+        Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();
+        Instrumentation.ActivityMonitor monitor=new Instrumentation.ActivityMonitor(){
+            @Override public Instrumentation.ActivityResult onStartActivity(Intent intent){
+                if(Intent.ACTION_CREATE_DOCUMENT.equals(intent.getAction())){savedType.set(intent.getType());return new Instrumentation.ActivityResult(Activity.RESULT_OK,new Intent().setData(uri).addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION));}
+                return null;
+            }
+        };
+        instrumentation.addMonitor(monitor);
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            until(scenario,"!!document.querySelector('main')");js(scenario,"location.hash='/studio';true");until(scenario,"!!document.querySelector('#chapter-body')");startNewDraft(scenario);
+            js(scenario,"(()=>{const t=document.querySelector('#chapter-body');t.value='甲段。 \\n\\n\\n乙段。';t.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('[data-action=\"format-manuscript\"]').click();return true})()");
+            until(scenario,"!!document.querySelector('#format-apply')");
+            assertEquals("\"甲段。\\n\\n乙段。\"",js(scenario,"document.querySelector('#format-after').value"));
+            js(scenario,"document.querySelector('#format-apply').click();true");until(scenario,"!document.querySelector('dialog[open]') && document.querySelector('#chapter-body').value==='甲段。\\n\\n乙段。'");
+            JSONObject index=new JSONObject(new String(Files.readAllBytes(new File(context.getFilesDir(),"drafts/index.json").toPath()),StandardCharsets.UTF_8));
+            assertTrue(index.toString().contains("格式整理前备份"));
+            js(scenario,"location.hash='/book/the-last-post-office';true");until(scenario,"!!document.querySelector('[data-book-download]')");js(scenario,"document.querySelector('[data-book-download]').click();true");until(scenario,"!!document.querySelector('#book-download-run')");js(scenario,"document.querySelector('#book-download-run').click();true");
+            until(scenario,"document.querySelector('#toast').textContent.includes('文件已保存')");
+            assertEquals("text/plain",savedType.get());
+            String text=new String(Files.readAllBytes(output.toPath()),StandardCharsets.UTF_8);
+            assertTrue(text.contains("最后一间邮局"));assertTrue(text.contains("第三章"));assertFalse(text.contains("importSource"));
+        }finally{instrumentation.removeMonitor(monitor);}
+    }
+
 }
